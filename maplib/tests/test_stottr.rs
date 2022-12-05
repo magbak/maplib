@@ -22,7 +22,7 @@ fn testdata_path() -> PathBuf {
     let mut testdata_path = PathBuf::new();
     testdata_path.push(manidir);
     testdata_path.push("tests");
-    testdata_path.push("maplib_testdata");
+    testdata_path.push("stottr_testdata");
     testdata_path
 }
 
