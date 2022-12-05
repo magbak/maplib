@@ -1,0 +1,7 @@
+[project]
+name = "maplib"
+dependencies = ["polars==0.14.21", "pyarrow>=4.0.*"]
+
+[build-system]
+requires = ["maturin>=0.13,<0.14"]
+build-backend = "maturin"
