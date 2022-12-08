@@ -1,5 +1,6 @@
 # maplib
-A Rust-based implementation of [stOTTR](https://dev.spec.ottr.xyz/stOTTR/) with extensions for mapping asset structures based on the [Epsilon Transformation Language](https://www.eclipse.org/epsilon/doc/etl/). Implemented with [Apache Arrow](https://arrow.apache.org/) in Rust using [Pola.rs](https://www.pola.rs/). with a Python wrapper
+Toolkit for mapping and enriching 
+A Rust-based implementation of [stOTTR](https://dev.spec.ottr.xyz/stOTTR/). Implemented with [Apache Arrow](https://arrow.apache.org/) in Rust using [Pola.rs](https://www.pola.rs/). with a Python wrapper
 
 ## Mapping
 We can easily map DataFrames to RDF-graphs using the Python library. 

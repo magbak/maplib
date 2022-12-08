@@ -119,6 +119,7 @@ impl Triplestore {
         }
 
         if let Some(mut mappings) = solution_mappings {
+
             let join_cols: Vec<String> = var_cols
                 .clone()
                 .into_iter()

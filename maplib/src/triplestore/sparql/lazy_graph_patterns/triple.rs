@@ -2,12 +2,11 @@ use super::Triplestore;
 use crate::mapping::RDFNodeType;
 use crate::triplestore::sparql::errors::SparqlError;
 use crate::triplestore::sparql::query_context::Context;
-use crate::triplestore::sparql::solution_mapping::SolutionMappings;
+use crate::triplestore::sparql::solution_mapping::{is_string_col, SolutionMappings};
 use crate::triplestore::sparql::sparql_to_polars::{
     sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
 use log::warn;
-use oxrdf::vocab::xsd;
 use polars::prelude::IntoLazy;
 use polars::prelude::{col, concat, lit, Expr};
 use polars_core::datatypes::DataType;
@@ -87,35 +86,15 @@ impl Triplestore {
                             TermPattern::Variable(var) => {
                                 lf = lf.rename(["object"], [var.as_str()]);
                                 var_cols.push(var.as_str().to_string());
-                                match dt {
-                                    RDFNodeType::IRI => {
-                                        str_cols.push(var.as_str().to_string());
-                                    }
-                                    RDFNodeType::Literal(lit) => {
-                                        if lit.as_ref() == xsd::STRING {
-                                            str_cols.push(var.as_str().to_string());
-                                        }
-                                    }
-                                    _ => {
-                                        panic!("No support for datatype {:?}", dt)
-                                    }
+                                if is_string_col(dt) {
+                                    str_cols.push(var.as_str().to_string());
                                 }
                             }
                             TermPattern::BlankNode(bn) => {
                                 lf = lf.rename(["object"], [bn.as_str()]);
                                 var_cols.push(bn.as_str().to_string());
-                                match dt {
-                                    RDFNodeType::IRI => {
-                                        str_cols.push(bn.as_str().to_string());
-                                    }
-                                    RDFNodeType::Literal(lit) => {
-                                        if lit.as_ref() == xsd::STRING {
-                                            str_cols.push(bn.as_str().to_string());
-                                        }
-                                    }
-                                    _ => {
-                                        panic!("No support for datatype {:?}", dt)
-                                    }
+                                if is_string_col(dt) {
+                                    str_cols.push(bn.as_str().to_string())
                                 }
                             }
                         }

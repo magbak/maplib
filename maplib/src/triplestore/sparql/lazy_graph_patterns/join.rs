@@ -1,9 +1,10 @@
 use super::Triplestore;
 use crate::triplestore::sparql::errors::SparqlError;
 use crate::triplestore::sparql::query_context::{Context, PathEntry};
-use crate::triplestore::sparql::solution_mapping::SolutionMappings;
+use crate::triplestore::sparql::solution_mapping::{is_string_col, SolutionMappings};
 use log::debug;
 use polars::prelude::{col, Expr};
+use polars_core::datatypes::DataType;
 use polars_core::prelude::JoinType;
 use spargebra::algebra::GraphPattern;
 
@@ -26,7 +27,6 @@ impl Triplestore {
             columns: mut right_columns,
             rdf_node_types: mut right_datatypes,
         } = self.lazy_graph_pattern(right, solution_mappings, &right_context)?;
-
         let mut join_on: Vec<&String> = left_solution_mappings
             .columns
             .intersection(&right_columns)
@@ -43,7 +43,14 @@ impl Triplestore {
                 JoinType::Cross,
             )
         } else {
+            for c in join_on {
+                if is_string_col(right_datatypes.get(c).unwrap()) {
+                    right_mappings = right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    left_solution_mappings.mappings = left_solution_mappings.mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                }
+            }
             let all_false = [false].repeat(join_on_cols.len());
+
             right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false);
             left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
                 join_on_cols.as_slice(),
