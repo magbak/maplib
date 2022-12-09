@@ -5,7 +5,7 @@ use spargebra::algebra::GraphPattern;
 use polars_core::prelude::JoinType;
 use crate::triplestore::sparql::errors::SparqlError;
 use crate::triplestore::sparql::query_context::{Context, PathEntry};
-use crate::triplestore::sparql::solution_mapping::SolutionMappings;
+use crate::triplestore::sparql::solution_mapping::{is_string_col, SolutionMappings};
 
 impl Triplestore {
     pub(crate) fn lazy_minus(
@@ -43,6 +43,12 @@ impl Triplestore {
         if join_on.is_empty() {
             Ok(left_solution_mappings)
         } else {
+            for c in join_on {
+                if is_string_col(left_solution_mappings.rdf_node_types.get(c).unwrap()) {
+                    right_mappings = right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    left_solution_mappings.mappings = left_solution_mappings.mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                }
+            }
             let join_on_cols:Vec<Expr> = join_on.iter().map(|x|col(x)).collect();
             let all_false = [false].repeat(join_on_cols.len());
             right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false);
