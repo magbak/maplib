@@ -4,10 +4,10 @@ use oxrdf::vocab::xsd;
 use polars::prelude::{concat_lst, Expr, LiteralValue, SpecialEq};
 use polars_core::datatypes::{DataType};
 use polars_core::prelude::{AnyValue, IntoSeries, Series};
+use representation::literals::sparql_literal_to_any_value;
 use crate::ast::{ConstantLiteral, ConstantTerm, PType};
 use crate::constants::{BLANK_NODE_IRI, NONE_IRI};
 use crate::mapping::errors::MappingError;
-use crate::literals::sparql_literal_to_any_value;
 use crate::mapping::RDFNodeType;
 
 pub fn constant_to_expr(

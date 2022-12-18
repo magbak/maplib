@@ -1,20 +1,17 @@
 [package]
-name = "maplib"
+name = "triplestore"
 version = "0.3.8"
 edition = "2021"
 
 [dependencies]
 representation = {path="../representation"}
-triplestore = {path="../triplestore"}
 parquet_io = {path="../parquet_io"}
 
 rayon = "1.6.0"
-nom={version="7.1.1", features=["alloc"]}
 sprs = {version="0.11.0", features=["rayon"]}
 spargebra = "0.2.2"
 oxrdf = "0.1.0"
 polars = {version="0.25.1", features=["semi_anti_join","abs", "round_series", "simd", "lazy", "concat_str", "dtype-categorical", "is_in", "strings", "dtype-struct", "horizontal_concat", "rows", "dtype-datetime", "timezones", "polars-time", "temporal", "list_eval", "partition_by", "parquet"] }
-unic-char-range = "0.9.0"
 mimalloc = { version = "*", default-features = false }
 log="0.4.14"
 rio_turtle = "0.7.1"

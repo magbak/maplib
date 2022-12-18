@@ -6,15 +6,12 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use polars_core::error::PolarsError;
 use thiserror::Error;
+use triplestore::errors::TriplestoreError;
 
 #[derive(Error, Debug)]
 pub enum MappingError {
     InvalidTemplateNameError(#[from] IriParseError),
     TemplateNotFound(String),
-    MissingKeyColumn,
-    MissingForeignKeyColumn(String, String),
-    KeyColumnContainsDuplicates(Series),
-    KeyAndPathColumnOverlapsExisting(DataFrame),
     NonOptionalColumnHasNull(String, DataFrame),
     NonBlankColumnHasBlankNode(String, Series),
     MissingParameterColumn(String),
@@ -29,14 +26,12 @@ pub enum MappingError {
     ConstantListHasInconsistentPType(ConstantTerm, PType, PType),
     NoTemplateForTemplateNameFromPrefix(String),
     FileCreateIOError(io::Error),
-    FolderCreateIOError(io::Error),
     WriteParquetError(PolarsError),
     ReadParquetError(PolarsError),
     PathDoesNotExist(String),
     WriteNTriplesError(io::Error),
     RemoveParquetFileError(io::Error),
-    ReadCachingDirectoryError(io::Error),
-    ReadCachingDirectoryEntryError(io::Error)
+    TriplestoreError(TriplestoreError)
 }
 
 impl Display for MappingError {
@@ -44,15 +39,6 @@ impl Display for MappingError {
         match self {
             MappingError::TemplateNotFound(t) => {
                 write!(f, "Could not find template: {}", t)
-            }
-            MappingError::MissingKeyColumn => {
-                write!(f, "Could not find Key column")
-            }
-            MappingError::KeyColumnContainsDuplicates(dupes) => {
-                write!(f, "Key column has duplicate entries: {}", dupes)
-            }
-            MappingError::KeyAndPathColumnOverlapsExisting(overlapping) => {
-                write!(f, "Key and path columns overlaps existing: {}", overlapping)
             }
             MappingError::NonOptionalColumnHasNull(col, nullkey) => {
                 write!(
@@ -118,13 +104,6 @@ impl Display for MappingError {
             MappingError::InvalidTemplateNameError(t) => {
                 write!(f, "Invalid template name {}", t)
             }
-            MappingError::MissingForeignKeyColumn(colname, expected_colname) => {
-                write!(
-                    f,
-                    "Expected that the column {} occurs in place of {}",
-                    expected_colname, colname
-                )
-            }
             MappingError::NoTemplateForTemplateNameFromPrefix(prefix) => {
                 write!(
                     f,
@@ -146,9 +125,6 @@ impl Display for MappingError {
             MappingError::WriteParquetError(e) => {
                 write!(f, "Writing to parquet file produced an error {:?}", e)
             }
-            MappingError::FolderCreateIOError(e) => {
-                write!(f, "Creating folder resulted in an error: {}", e)
-            }
             MappingError::PathDoesNotExist(p) => {
                 write!(f, "Path {} does not exist", p)
             }
@@ -161,11 +137,8 @@ impl Display for MappingError {
             MappingError::RemoveParquetFileError(e) => {
                 write!(f, "Error removing parquet file {}", e)
             }
-            MappingError::ReadCachingDirectoryError(e) => {
-                write!(f, "Read caching directory error {}", e)
-            }
-            MappingError::ReadCachingDirectoryEntryError(e) => {
-                write!(f, "Read caching directory entry error {}", e)
+            MappingError::TriplestoreError(e) => {
+                write!(f, "Triplestore error {}", e)
             }
         }
     }

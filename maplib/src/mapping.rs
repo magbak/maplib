@@ -10,14 +10,12 @@ use crate::ast::{
 use crate::constants::OTTR_TRIPLE;
 use crate::document::document_from_str;
 use crate::errors::MaplibError;
-use crate::io_funcs::{create_folder_if_not_exists, delete_tmp_parquets_in_caching_folder};
 use crate::mapping::constant_terms::constant_to_expr;
 use crate::mapping::errors::MappingError;
 use crate::templates::TemplateDataset;
-use crate::triplestore::{TripleType, TriplesToAdd, Triplestore};
+use triplestore::{TriplesToAdd, Triplestore};
 use log::debug;
-use oxrdf::vocab::xsd;
-use oxrdf::{NamedNode, NamedNodeRef, Triple};
+use oxrdf::{Triple};
 use polars::lazy::prelude::{col, Expr};
 use polars::prelude::{DataFrame, IntoLazy};
 use polars_core::series::Series;
@@ -29,10 +27,13 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Instant;
 use uuid::Uuid;
+use representation::RDFNodeType;
 
 pub struct Mapping {
     template_dataset: TemplateDataset,
     pub triplestore: Triplestore,
+    use_caching: bool
+
 }
 
 pub struct ExpandOptions {
@@ -68,48 +69,6 @@ pub struct PrimitiveColumn {
     pub language_tag: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum RDFNodeType {
-    IRI,
-    BlankNode,
-    Literal(NamedNode),
-    None,
-}
-
-impl RDFNodeType {
-    pub fn is_lit_type(&self, nnref: NamedNodeRef) -> bool {
-        if let RDFNodeType::Literal(l) = self {
-            if l.as_ref() == nnref {
-                return true;
-            }
-        }
-        false
-    }
-
-    pub fn is_bool(&self) -> bool {
-        self.is_lit_type(xsd::BOOLEAN)
-    }
-
-    pub fn is_float(&self) -> bool {
-        self.is_lit_type(xsd::FLOAT)
-    }
-
-    pub(crate) fn find_triple_type(&self) -> TripleType {
-        let triple_type = if let RDFNodeType::IRI = self {
-            TripleType::ObjectProperty
-        } else if let RDFNodeType::Literal(lit) = self {
-            if lit.as_ref() == xsd::STRING {
-                TripleType::StringProperty
-            } else {
-                TripleType::NonStringProperty
-            }
-        } else {
-            todo!("Triple type {:?} not supported", self)
-        };
-        triple_type
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct MappingReport {}
 
@@ -118,15 +77,11 @@ impl Mapping {
         match env_logger::try_init() {
             _ => {}
         }
-        if let Some(caching_folder) = &caching_folder {
-            let path = Path::new(caching_folder);
-            create_folder_if_not_exists(path)?;
-            delete_tmp_parquets_in_caching_folder(path)?;
-        }
-
+        let use_caching = caching_folder.is_some();
         Ok(Mapping {
             template_dataset: template_dataset.clone(),
-            triplestore: Triplestore::new(caching_folder),
+            triplestore: Triplestore::new(caching_folder).map_err(|x|MappingError::TriplestoreError(x))?,
+            use_caching
         })
     }
 
@@ -174,11 +129,11 @@ impl Mapping {
 
     pub fn write_native_parquet(&mut self, path: &str) -> Result<(), MappingError> {
         self.triplestore
-            .write_native_parquet(Path::new(path))
+            .write_native_parquet(Path::new(path)).map_err(|x|MappingError::TriplestoreError(x))
     }
 
     pub fn export_oxrdf_triples(&mut self) -> Result<Vec<Triple>, MappingError> {
-        self.triplestore.export_oxrdf_triples()
+        self.triplestore.export_oxrdf_triples().map_err(|x|MappingError::TriplestoreError(x))
     }
 
     fn resolve_template(&self, s: &str) -> Result<&Template, MappingError> {
@@ -226,8 +181,7 @@ impl Mapping {
         };
         let call_uuid = Uuid::new_v4().to_string();
 
-        if let Some(caching_folder) = &self.triplestore.caching_folder {
-            create_folder_if_not_exists(Path::new(&caching_folder))?;
+        if self.use_caching {
             let n_50_mb = (df.estimated_size() / 50_000_000) + 1;
             let chunk_size = df.height() / n_50_mb;
             let mut offset = 0i64;
@@ -393,7 +347,7 @@ impl Mapping {
             });
         }
         self.triplestore
-            .add_triples_vec(all_triples_to_add, call_uuid)?;
+            .add_triples_vec(all_triples_to_add, call_uuid).map_err(|x|MappingError::TriplestoreError(x))?;
 
         debug!(
             "Result processing took {} seconds",
