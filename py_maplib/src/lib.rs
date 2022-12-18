@@ -19,7 +19,7 @@ use arrow_python_utils::to_python::{df_to_py_df, df_vec_to_py_df_list};
 use maplib::errors::MaplibError;
 use maplib::mapping::errors::MappingError;
 use oxrdf::NamedNode;
-use maplib::triplestore::sparql::QueryResult;
+use triplestore::sparql::QueryResult;
 
 #[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]

@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 use maplib::errors::MaplibError;
-use maplib::triplestore::sparql::errors::SparqlError;
+use triplestore::sparql::errors::SparqlError;
 use polars_core::error::{ArrowError, PolarsError};
 use pyo3::{
     create_exception,
@@ -32,6 +32,7 @@ use pyo3::{
 use std::fmt::Debug;
 use maplib::mapping::errors::MappingError;
 use maplib::templates::errors::TemplateError;
+use triplestore::errors::TriplestoreError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -48,6 +49,8 @@ pub enum PyMaplibError {
     TemplateError(#[from] TemplateError),
     #[error(transparent)]
     MappingError(#[from] MappingError),
+    #[error(transparent)]
+    TriplestoreError(#[from] TriplestoreError),
 }
 
 impl std::convert::From<PyMaplibError> for PyErr {
@@ -59,6 +62,7 @@ impl std::convert::From<PyMaplibError> for PyErr {
             PyMaplibError::SparqlError(err) => SparqlErrorException::new_err(format!("{}", err)),
             PyMaplibError::TemplateError(err) => TemplateErrorException::new_err(format!("{}", err)),
             PyMaplibError::MappingError(err) => MappingErrorException::new_err(format!("{}", err)),
+            PyMaplibError::TriplestoreError(err) => TriplestoreErrorException::new_err(format!("{}", err)),
         }
     }
 }
@@ -69,4 +73,5 @@ create_exception!(exceptions, PolarsErrorException, PyException);
 create_exception!(exceptions, MappingErrorException, PyException);
 create_exception!(exceptions, SparqlErrorException, PyException);
 create_exception!(exceptions, TemplateErrorException, PyException);
+create_exception!(exceptions, TriplestoreErrorException, PyException);
 
