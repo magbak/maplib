@@ -53,7 +53,7 @@ pub enum PyMaplibError {
     TriplestoreError(#[from] TriplestoreError),
 }
 
-impl std::convert::From<PyMaplibError> for PyErr {
+impl From<PyMaplibError> for PyErr {
     fn from(err: PyMaplibError) -> PyErr {
         match &err {
             PyMaplibError::MaplibError(err) => MaplibErrorException::new_err(format!("{}", err)),

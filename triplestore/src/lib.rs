@@ -6,6 +6,7 @@ pub mod sparql;
 mod constants;
 pub mod errors;
 mod io_funcs;
+pub(crate) mod shacl;
 
 use representation::RDFNodeType;
 use parquet_io::{ParquetIOError, property_to_filename, read_parquet, split_write_tmp_df, write_parquet};
