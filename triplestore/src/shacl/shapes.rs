@@ -1,4 +1,6 @@
 use oxrdf::{Literal, NamedNode};
+use polars_core::series::Series;
+use representation::RDFNodeType;
 use crate::shacl::constraints::Constraint;
 
 pub enum Shape {
@@ -39,8 +41,13 @@ pub enum NamedNodeOrLiteral {
     Literal(Literal)
 }
 
+pub struct TargetNodes {
+    pub series:Series,
+    pub rdf_node_type: RDFNodeType
+}
+
 pub enum TargetDeclaration {
-    TargetNode(NamedNodeOrLiteral),
+    TargetNodes(TargetNodes),
     TargetClass(NamedNode),
     TargetSubjectsOf(NamedNode),
     TargetObjectsOf(NamedNode)
