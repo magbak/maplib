@@ -19,6 +19,8 @@ const SHACL_TARGET_NODE:&str = "http://www.w3.org/ns/shacl#targetNode";
 const SHACL_TARGET_CLASS:&str = "http://www.w3.org/ns/shacl#targetClass";
 const SHACL_TARGETS_SUBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsSubjectsOf";
 const SHACL_TARGETS_OBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsObjectsOf";
+const SHACL_PROPERTY:&str = "http://www.w3.org/ns/shacl#property";
+const SHACL_PATH:&str = "http://www.w3.org/ns/shacl#path";
 
 
 impl Triplestore {
@@ -35,9 +37,9 @@ impl Triplestore {
         //["subject"]
         let node_shapes_df = self.get_node_shape_df()?;
         //["subject", "object"]
-        let target_declaration_df = self.get_target_declarations()?;
+        let target_declaration_map = self.get_target_declarations()?;
         //["subject", "object"]
-
+        let properties_map = self.get_properties()?;
         Ok(())
     }
 
@@ -124,6 +126,29 @@ impl Triplestore {
         Ok(())
     }
 
+    fn get_properties_map(&self) {
+        let mut property_rels = vec![];
+        if let Some(map) = self.df_map.get(SHACL_PROPERTY) {
+            if let Some(tt) = map.get(&RDFNodeType::IRI) {
+                let lfs = tt.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))?;
+                for lf in lfs {
+                    let df = lf.column.collect().unwrap();
+                    property_rel.push(df);
+                }
+            }
+        }
+
+        let mut path_rels = vec![];
+        if let Some(map) = self.df_map.get(SHACL_PATH) {
+            if let Some(tt) = map.get(&RDFNodeType::IRI) {
+                let lfs = tt.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))?;
+                for lf in lfs {
+                    let df = lf.column.collect().unwrap();
+                    property_rel.push(df);
+                }
+            }
+        }
+    }
 
     fn validate_shape(&self, shape: &Shape) -> DataFrame {
 
