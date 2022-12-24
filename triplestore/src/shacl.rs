@@ -17,8 +17,8 @@ use super::Triplestore;
 const SHACL_NODE_SHAPE:&str = "http://www.w3.org/ns/shacl#NodeShape";
 const SHACL_TARGET_NODE:&str = "http://www.w3.org/ns/shacl#targetNode";
 const SHACL_TARGET_CLASS:&str = "http://www.w3.org/ns/shacl#targetClass";
-const SHACL_TARGETS_SUBJECT_OF:&str = "http://www.w3.org/ns/shacl#targetsSubjectOf";
-const SHACL_TARGETS_OBJECT_OF:&str = "http://www.w3.org/ns/shacl#targetsObjectOf";
+const SHACL_TARGETS_SUBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsSubjectsOf";
+const SHACL_TARGETS_OBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsObjectsOf";
 
 
 impl Triplestore {
@@ -28,25 +28,25 @@ impl Triplestore {
         for s in shapes {
            reports.push(self.validate_shape(&s))
         }
-        Ok(concat_df(reports).unwrap())
+        Ok(concat_df(reports.as_slice()).unwrap())
     }
 
     fn get_shape_graph(&self) -> Result<Vec<Shape>, ShaclError> {
         //["subject"]
         let node_shapes_df = self.get_node_shape_df()?;
         //["subject", "object"]
-        let target_declaration_df = self.get_target_declaration_df()?;
+        let target_declaration_df = self.get_target_declarations()?;
         //["subject", "object"]
 
-        Ok()
+        Ok(())
     }
 
     fn get_node_shape_df(&self) -> Result<Option<DataFrame>, ShaclError> {
         let mut node_shapes = vec![];
         if let Some(subjects) = self.df_map.get(TYPE.as_str()) {
             if let Some(blank_table) = subjects.get(&RDFNodeType::BlankNode) {
-                for f in blank_table.get_lazy_frames()? {
-                    node_shapes.push(f.filter(col("object").eq(lit(SHACL_NODE_SHAPE))).select("subject"))
+                for f in blank_table.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))? {
+                    node_shapes.push(f.filter(col("object").eq(lit(SHACL_NODE_SHAPE))).select([col("subject")]))
                 }
             }
         }
@@ -58,10 +58,10 @@ impl Triplestore {
     }
 
     fn get_target_declarations(&self) -> Result<HashMap<String, Vec<TargetDeclaration>>, ShaclError> {
-        let mut declarations_map = HashMap::new();
+        let mut declarations_map: HashMap<String, Vec<TargetDeclaration>> = HashMap::new();
         if let Some(target_node_map) = self.df_map.get(SHACL_TARGET_NODE) {
             for (rdf_node_type,v) in target_node_map {
-                for lf in v.get_lazy_frames()? {
+                for lf in v.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))? {
                     let dfs = lf.collect().unwrap().partition_by(vec!["subject"]).unwrap();
                     for df in dfs {
                         let subject = df.column("subject").unwrap().get(0);
@@ -82,10 +82,17 @@ impl Triplestore {
                 }
             }
         }
+        self.find_non_instance_target_declaration(&mut declarations_map, SHACL_TARGET_CLASS, &|x|TargetDeclaration::TargetClass(x))?;
+        self.find_non_instance_target_declaration(&mut declarations_map, SHACL_TARGETS_SUBJECTS_OF, &|x|TargetDeclaration::TargetSubjectsOf(x))?;
+        self.find_non_instance_target_declaration(&mut declarations_map, SHACL_TARGETS_OBJECTS_OF, &|x|TargetDeclaration::TargetObjectsOf(x))?;
 
-        if let Some(target_class_map) = self.df_map.get(SHACL_TARGET_CLASS) {
+        Ok(declarations_map)
+    }
+
+    fn find_non_instance_target_declaration(&self, declarations_map:&mut HashMap<String, Vec<TargetDeclaration>>, property_uri: &str, func:&dyn Fn(NamedNode)->TargetDeclaration) -> Result<(), ShaclError>  {
+        if let Some(target_class_map) = self.df_map.get(property_uri) {
             if let Some(tt) = target_class_map.get(&RDFNodeType::IRI) {
-                for lf in tt.get_lazy_frames()? {
+                for lf in tt.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))? {
                     let df = lf.collect().unwrap();
                     let mut subject_iter = df.column("subject").unwrap().iter();
                     let mut object_iter = df.column("object").unwrap().iter();
@@ -104,26 +111,23 @@ impl Triplestore {
                         } else {
                             panic!("Obj always string")
                         }
-                        let decl = TargetDeclaration::TargetClass(NamedNode::new(obj_string)?);
-                        if let Some(v) = declarations_map.get_mut(&subject_string) {
+                        let decl = func(NamedNode::new(obj_string).map_err(|x|ShaclError::IriParseError(x))?);
+                        if let Some(v) = declarations_map.get_mut(&subj_string) {
                             v.push(decl);
                         } else {
-                            declarations_map.insert(subject_string, vec![decl]);
+                            declarations_map.insert(subj_string, vec![decl]);
                         }
                     }
                 }
             }
         }
-
-
-        Ok(declarations_map)
+        Ok(())
     }
 
 
     fn validate_shape(&self, shape: &Shape) -> DataFrame {
 
     }
-
 
 }
 

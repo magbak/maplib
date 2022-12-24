@@ -1,5 +1,5 @@
 use oxrdf::{Literal, NamedNode};
-use crate::shapes::{NamedNodeOrLiteral, NodeShape, PropertyShape, Shape};
+use crate::shacl::shapes::{NamedNodeOrLiteral, NodeShape, PropertyShape, Shape};
 
 pub enum Constraint {
     Class(ClassConstraint),
