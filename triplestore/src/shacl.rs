@@ -11,7 +11,7 @@ use polars_core::prelude::AnyValue;
 use polars_core::utils::concat_df;
 use representation::RDFNodeType;
 use crate::shacl::errors::ShaclError;
-use crate::shacl::shapes::{Shape, TargetDeclaration, TargetNodes};
+use crate::shacl::shapes::{Path, Shape, TargetDeclaration, TargetNodes};
 use super::Triplestore;
 
 const SHACL_NODE_SHAPE:&str = "http://www.w3.org/ns/shacl#NodeShape";
@@ -20,7 +20,10 @@ const SHACL_TARGET_CLASS:&str = "http://www.w3.org/ns/shacl#targetClass";
 const SHACL_TARGETS_SUBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsSubjectsOf";
 const SHACL_TARGETS_OBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsObjectsOf";
 const SHACL_PROPERTY:&str = "http://www.w3.org/ns/shacl#property";
-const SHACL_PATH:&str = "http://www.w3.org/ns/shacl#path";
+const SHACL_ALTERNATIVE_PATH:&str = "http://www.w3.org/ns/shacl#alternativePath";
+const SHACL_ZERO_OR_MORE:&str = "http://www.w3.org/ns/shacl#zeroOrMorePath";
+const SHACL_ONE_OR_MORE_PATH:&str = "http://www.w3.org/ns/shacl#oneOrMorePath";
+const SHACL_ZERO_OR_ONE_PATH:&str = "http://www.w3.org/ns/shacl#zeroOrOnePath";
 
 
 impl Triplestore {
@@ -139,20 +142,116 @@ impl Triplestore {
         }
 
         let mut path_rels = vec![];
+
+    }
+
+    fn get_path_dict(&self) -> Result<HashMap<String, Path>,ShaclError>{
+        let mut out_map = HashMap::new();
+        let mut path_rels = vec![];
         if let Some(map) = self.df_map.get(SHACL_PATH) {
             if let Some(tt) = map.get(&RDFNodeType::IRI) {
                 let lfs = tt.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))?;
                 for lf in lfs {
                     let df = lf.column.collect().unwrap();
-                    property_rel.push(df);
+                    path_rels.push(df);
                 }
             }
         }
+        let df = concat(path_rels, true, true).unwrap().collect().unwrap();
+        let any_object_property_df = self.get_any_nonpath_object_property_df()?;
+        let mut props_map = HashMap::new();
+        let mut subj_iter = df.column("subject").unwrap().iter();
+        let mut verb_iter = df.column("verb").unwrap().iter();
+        let mut obj_iter = df.column("object").unwrap().iter();
+
+        for _ in 0..any_object_property_df.height() {
+            let subj = subj_iter.next().unwrap();
+            let verb = verb_iter.next().unwrap();
+            let obj = obj_iter.next().unwrap();
+            let subj_str;
+            let verb_str;
+            let obj_str;
+            if let Some(AnyValue::Utf8(s)) = subj {
+                subj_str = s
+            } else {
+                panic!("Subject always string");
+            }
+            if let Some(AnyValue::Utf8(s)) = verb {
+                verb_str = s
+            } else {
+                panic!("Verb always string");
+            }
+            if let Some(AnyValue::Utf8(s)) = obj {
+                obj_str = s
+            } else {
+                panic!("Object always string");
+            }
+            props_map.insert(subj_str, (verb_str, obj_str));
+        }
+
+        let mut prop_iter = df.column("subject").unwrap().iter();
+        let mut path_elem_iter = df.column("object").unwrap().iter();
+
+        for _ in 0..df.height() {
+            let prop = prop_iter.next();
+            let prop_str;
+            if let Some(AnyValue::Utf8(s)) = prop {
+                prop_str = s;
+            } else {
+                panic!("Prop is str");
+            }
+            let path_elem = path_elem_iter.next();
+            let path_elem_str;
+            if let Some(AnyValue::Utf8(s)) = path_elem {
+                path_elem_str = s
+            } else {
+                panic!("Path elem is always string");
+            }
+            let pp = create_property_path(path_elem_str, &props_map);
+        }
+
+        Ok(())
     }
+
 
     fn validate_shape(&self, shape: &Shape) -> DataFrame {
 
     }
 
+    fn get_any_nonpath_object_property_df(&self) -> Result<DataFrame, ShaclError> {
+        let mut lfs = vec![];
+        for (verb,map) in &self.df_map {
+            if verb != SHACL_PATH {
+                if let Some(tt) = map.get(&RDFNodeType::BlankNode) {
+                    for mut lf in tt.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))? {
+                        lf = lf.with_column(lit(verb).alias("verb"));
+                        lfs.push(lf)
+                    }
+                }
+                if let Some(tt) = map.get(&RDFNodeType::IRI) {
+                    for mut lf in tt.get_lazy_frames().map_err(|x|ShaclError::TriplestoreError(x))? {
+                        lf = lf.with_column(lit(verb).alias("verb"));
+                        lfs.push(lf)
+                    }
+                }
+            }
+        }
+        Ok(concat(lfs, true, true).unwrap().collect().unwrap())
+    }
+}
+
+fn create_property_path(elem: &str, props_map: &HashMap<&str, (&str, &str)>) -> Result<Path, ShaclError> {
+
+    if let Some((verb, obj)) = props_map.get(&elem) {
+      if verb == &SHACL_ONE_OR_MORE_PATH {
+
+      } else if verb == &SHACL_ZERO_OR_ONE_PATH {
+          return Ok((Path::ZeroOrOne(Box::new(create_property_path()))))
+      }
+    } else {
+        return Ok(Path::Predicate(NamedNode::new(elem.to_string()).map_err(|x|ShaclError::IriParseError(x))?))
+    }
+
+    Ok()
 }
 
