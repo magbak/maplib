@@ -8,7 +8,8 @@ pub enum ShaclError {
     TriplestoreError(TriplestoreError),
     IriParseError(IriParseError),
     ListMissingFirstElementError(String),
-    ListMissingRestError(String)
+    ListMissingRestError(String),
+    PropertyMissingPath(String)
 }
 
 impl Display for ShaclError {
@@ -25,6 +26,9 @@ impl Display for ShaclError {
             }
             ShaclError::ListMissingRestError(s) => {
                 write!(f, "List is missing rest error at {}", s)
+            }
+            ShaclError::PropertyMissingPath(p) => {
+                write!(f, "Property is missing path {}", p)
             }
         }
     }

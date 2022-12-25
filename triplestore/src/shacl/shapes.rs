@@ -3,11 +3,6 @@ use polars_core::series::Series;
 use representation::RDFNodeType;
 use crate::shacl::constraints::Constraint;
 
-pub enum Shape {
-    NodeShape(NodeShape),
-    PropertyShape(PropertyShape)
-}
-
 pub enum Severity {
     INFO,
     WARNING,
@@ -15,12 +10,12 @@ pub enum Severity {
 }
 
 pub struct NodeShape {
-    target_declarations: Vec<TargetDeclaration>,
-    property_shapes: Vec<PropertyShape>
+    pub(crate) target_declarations: Vec<TargetDeclaration>,
+    pub(crate) property_shapes: Vec<PropertyShape>
 }
 
 pub struct PropertyShape {
-    path: Path,
+    pub(crate) path: Path,
     name: Option<String>,
     description: Option<String>,
     constraints: Vec<Constraint>
