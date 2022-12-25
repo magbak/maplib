@@ -29,8 +29,8 @@ pub struct PropertyShape {
 pub enum Path {
     Predicate(NamedNode),
     Inverse(Box<Path>),
-    Sequence(Box<Path>, Box<Path>),
-    Alternative(Box<Path>, Box<Path>),
+    Sequence(Vec<Box<Path>>),
+    Alternative(Vec<Box<Path>>),
     ZeroOrMore(Box<Path>),
     OneOrMore(Box<Path>),
     ZeroOrOne(Box<Path>)

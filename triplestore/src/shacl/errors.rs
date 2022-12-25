@@ -6,7 +6,9 @@ use crate::errors::TriplestoreError;
 #[derive(Error, Debug)]
 pub enum ShaclError {
     TriplestoreError(TriplestoreError),
-    IriParseError(IriParseError)
+    IriParseError(IriParseError),
+    ListMissingFirstElementError(String),
+    ListMissingRestError(String)
 }
 
 impl Display for ShaclError {
@@ -17,6 +19,12 @@ impl Display for ShaclError {
             }
             ShaclError::IriParseError(e) => {
                 write!(f, "IriParseError during SHACL processing: {}", e)
+            }
+            ShaclError::ListMissingFirstElementError(s) => {
+                write!(f, "List is missing first element at {}", s)
+            }
+            ShaclError::ListMissingRestError(s) => {
+                write!(f, "List is missing rest error at {}", s)
             }
         }
     }

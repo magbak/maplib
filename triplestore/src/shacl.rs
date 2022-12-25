@@ -3,8 +3,9 @@ mod errors;
 mod shapes;
 
 use std::collections::HashMap;
+use std::hash::Hash;
 use oxrdf::NamedNode;
-use oxrdf::vocab::rdf::TYPE;
+use oxrdf::vocab::rdf::{NIL, TYPE};
 use polars::prelude::{col, concat, lit};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::AnyValue;
@@ -21,10 +22,10 @@ const SHACL_TARGETS_SUBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsSubjec
 const SHACL_TARGETS_OBJECTS_OF:&str = "http://www.w3.org/ns/shacl#targetsObjectsOf";
 const SHACL_PROPERTY:&str = "http://www.w3.org/ns/shacl#property";
 const SHACL_ALTERNATIVE_PATH:&str = "http://www.w3.org/ns/shacl#alternativePath";
-const SHACL_ZERO_OR_MORE:&str = "http://www.w3.org/ns/shacl#zeroOrMorePath";
+const SHACL_SEQUENCE_PATH:&str = "http://www.w3.org/ns/shacl#alternativePath";
+const SHACL_ZERO_OR_MORE_PATH:&str = "http://www.w3.org/ns/shacl#zeroOrMorePath";
 const SHACL_ONE_OR_MORE_PATH:&str = "http://www.w3.org/ns/shacl#oneOrMorePath";
 const SHACL_ZERO_OR_ONE_PATH:&str = "http://www.w3.org/ns/shacl#zeroOrOnePath";
-
 
 impl Triplestore {
     pub fn validate(&self) -> Result<DataFrame, ShaclError>  {
@@ -240,13 +241,47 @@ impl Triplestore {
     }
 }
 
-fn create_property_path(elem: &str, props_map: &HashMap<&str, (&str, &str)>) -> Result<Path, ShaclError> {
-
+fn create_property_path(elem: &str, props_map: &HashMap<&str, (&str, &str)>, first_map:&HashMap<&str, &str>, rest_map:&HashMap<&str, &str>) -> Result<Path, ShaclError> {
     if let Some((verb, obj)) = props_map.get(&elem) {
       if verb == &SHACL_ONE_OR_MORE_PATH {
-
+          return Ok(
+              Path::OneOrMore(
+                  Box::new(
+                      create_property_path(obj, props_map, first_map, rest_map)?
+                  )
+              )
+          );
       } else if verb == &SHACL_ZERO_OR_ONE_PATH {
-          return Ok((Path::ZeroOrOne(Box::new(create_property_path()))))
+          return Ok(
+              Path::ZeroOrOne(
+                  Box::new(
+                      create_property_path(obj, props_map, first_map, rest_map)?
+                  )
+              )
+          );
+      }
+        else if verb == &SHACL_ZERO_OR_MORE_PATH {
+          return Ok(
+              Path::ZeroOrMore(
+                  Box::new(
+                      create_property_path(obj, props_map, first_map, rest_map)?
+                  )
+              )
+          );
+      }
+        else if verb == &SHACL_ALTERNATIVE_PATH || verb == &SHACL_SEQUENCE_PATH {
+            let elements = get_list_elems(obj, first_map, rest_map)?;
+            let mut paths = vec![];
+            for e in elements {
+                paths.push(Box::new(create_property_path(e, props_map, first_map, rest_map)?));
+            }
+            if verb == SHACL_ALTERNATIVE_PATH {
+                return Ok(Path::Alternative(paths))
+            } else if verb == SHACL_SEQUENCE_PATH {
+                return OK(Path::Sequence(paths))
+            } else {
+                panic!("Will never happen")
+            }
       }
     } else {
         return Ok(Path::Predicate(NamedNode::new(elem.to_string()).map_err(|x|ShaclError::IriParseError(x))?))
@@ -255,3 +290,25 @@ fn create_property_path(elem: &str, props_map: &HashMap<&str, (&str, &str)>) -> 
     Ok()
 }
 
+fn get_list_elems<'a>(mut list:&str, first_map:&HashMap<&str, &'a str>, rest_map:&HashMap<&str, &str>) -> Result<Vec<&'a str>, ShaclError> {
+    let nil = NIL.as_str();
+    let mut l = vec![];
+    let mut finished = false;
+    while !finished {
+        if list == nil {
+            finished = true;
+        } else {
+            if let Some(f) = first_map.get(&list) {
+                l.push(*f);
+            } else {
+                return Err(ShaclError::ListMissingFirstElementError(list.to_string()))
+            }
+           if let Some(r) = rest_map.get(&list) {
+                list = r;
+            } else {
+                return Err(ShaclError::ListMissingRestError(list.to_string()))
+            }
+        }
+    }
+    Ok(l)
+}
