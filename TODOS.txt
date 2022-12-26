@@ -5,3 +5,4 @@ TODO list:
 - Improve quality of datatype inference in expressions
 - Create tests for folder cleanup with caching folder
 - Create write native parquet test
+

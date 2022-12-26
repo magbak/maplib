@@ -256,47 +256,11 @@ impl Triplestore {
             }
         }
         let df = concat(path_rels, true, true).unwrap().collect().unwrap();
-        let any_object_property_df = self.get_any_nonpath_object_property_df()?;
-        let mut props_map = HashMap::new();
-        let mut first_map = HashMap::new();
-        let mut rest_map = HashMap::new();
-        let mut subj_iter = df.column("subject").unwrap().iter();
-        let mut verb_iter = df.column("verb").unwrap().iter();
-        let mut obj_iter = df.column("object").unwrap().iter();
-
-        for _ in 0..any_object_property_df.height() {
-            let subj = subj_iter.next().unwrap();
-            let verb = verb_iter.next().unwrap();
-            let obj = obj_iter.next().unwrap();
-            let subj_str;
-            let verb_str;
-            let obj_str;
-            if let Some(AnyValue::Utf8(s)) = subj {
-                subj_str = s
-            } else {
-                panic!("Subject always string");
-            }
-            if let Some(AnyValue::Utf8(s)) = verb {
-                verb_str = s
-            } else {
-                panic!("Verb always string");
-            }
-            if let Some(AnyValue::Utf8(s)) = obj {
-                obj_str = s
-            } else {
-                panic!("Object always string");
-            }
-            if verb_str == SHACL_FIRST {
-                first_map.insert(subj_str, obj_str);
-            } else if verb_str == SHACL_REST {
-                rest_map.insert(subj_str, obj_str);
-            } else {
-                props_map.insert(subj_str, (verb_str, obj_str));
-            }
-        }
 
         let mut prop_iter = df.column("subject").unwrap().iter();
         let mut path_elem_iter = df.column("object").unwrap().iter();
+
+        let (props_map, first_map, rest_map) = self.get_maps()?;
 
         for _ in 0..df.height() {
             let prop = prop_iter.next();
@@ -346,6 +310,49 @@ impl Triplestore {
         }
         Ok(concat(lfs, true, true).unwrap().collect().unwrap())
     }
+
+    fn get_maps(&self) -> Result<(HashMap<&str, (&str, &str)>, HashMap<&str, &str>, HashMap<&str, &str>), ShaclError> {
+        let any_object_property_df = self.get_any_nonpath_object_property_df()?;
+        let mut props_map = HashMap::new();
+        let mut first_map = HashMap::new();
+        let mut rest_map = HashMap::new();
+        let mut subj_iter = any_object_property_df.column("subject").unwrap().iter();
+        let mut verb_iter = any_object_property_df.column("verb").unwrap().iter();
+        let mut obj_iter = any_object_property_df.column("object").unwrap().iter();
+
+        for _ in 0..any_object_property_df.height() {
+            let subj = subj_iter.next().unwrap();
+            let verb = verb_iter.next().unwrap();
+            let obj = obj_iter.next().unwrap();
+            let subj_str;
+            let verb_str;
+            let obj_str;
+            if let Some(AnyValue::Utf8(s)) = subj {
+                subj_str = s
+            } else {
+                panic!("Subject always string");
+            }
+            if let Some(AnyValue::Utf8(s)) = verb {
+                verb_str = s
+            } else {
+                panic!("Verb always string");
+            }
+            if let Some(AnyValue::Utf8(s)) = obj {
+                obj_str = s
+            } else {
+                panic!("Object always string");
+            }
+            if verb_str == SHACL_FIRST {
+                first_map.insert(subj_str, obj_str);
+            } else if verb_str == SHACL_REST {
+                rest_map.insert(subj_str, obj_str);
+            } else {
+                props_map.insert(subj_str, (verb_str, obj_str));
+            }
+        }
+        Ok((props_map, first_map, rest_map))
+    }
+
     fn get_constraints_map(&self, props_map: &HashMap<&str, (&str, &str)>) -> HashMap<&str, Vec<Constraint>> {
         todo!()
     }
