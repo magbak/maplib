@@ -9,7 +9,9 @@ pub enum ShaclError {
     IriParseError(IriParseError),
     ListMissingFirstElementError(String),
     ListMissingRestError(String),
-    PropertyMissingPath(String)
+    PropertyMissingPath(String),
+    NodeShapeMissingProperties,
+    InvalidNodeKindError(String)
 }
 
 impl Display for ShaclError {
@@ -29,6 +31,12 @@ impl Display for ShaclError {
             }
             ShaclError::PropertyMissingPath(p) => {
                 write!(f, "Property is missing path {}", p)
+            }
+            ShaclError::NodeShapeMissingProperties => {
+                write!(f, "Node shape does not have any properties")
+            }
+            ShaclError::InvalidNodeKindError(nk) => {
+                write!(f, "Invalid node kind URI {}", nk)
             }
         }
     }

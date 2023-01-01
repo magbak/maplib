@@ -46,7 +46,9 @@ pub enum NodeKind {
     BlankNode,
     IRI,
     Literal,
-    BlankNodeOrIRI
+    BlankNodeOrIRI,
+    IRIOrLiteral,
+    BlankNodeOrLiteral
 }
 
 pub struct NodeKindConstraint {

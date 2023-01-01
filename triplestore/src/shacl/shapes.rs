@@ -9,6 +9,11 @@ pub enum Severity {
     VIOLATION,
 }
 
+pub enum Shape {
+    NodeShape(NodeShape),
+    PropertyShape(PropertyShape)
+}
+
 pub struct NodeShape {
     pub(crate) target_declarations: Vec<TargetDeclaration>,
     pub(crate) property_shapes: Vec<PropertyShape>
@@ -16,9 +21,9 @@ pub struct NodeShape {
 
 pub struct PropertyShape {
     pub(crate) path: Path,
-    name: Option<String>,
-    description: Option<String>,
-    constraints: Vec<Constraint>
+    pub(crate) name: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) constraints: Vec<Constraint>
 }
 
 pub enum Path {

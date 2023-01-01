@@ -1,17 +1,18 @@
+mod constraints;
+
 use super::Triplestore;
+use crate::shacl::constraints::Constraint;
 use crate::shacl::errors::ShaclError;
 use crate::shacl::shapes::NodeShape;
-use crate::shacl::shapes::{Path, PropertyShape, Shape, TargetDeclaration, TargetNodes};
+use crate::shacl::shapes::{Path, PropertyShape, TargetDeclaration, TargetNodes};
 use oxrdf::vocab::rdf::{NIL, TYPE};
 use oxrdf::NamedNode;
 use polars::prelude::{col, concat, lit};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::AnyValue;
-use polars_core::utils::concat_df;
 use representation::RDFNodeType;
 use std::collections::HashMap;
-use std::hash::Hash;
-use crate::shacl::constraints::Constraint;
+use polars_core::utils::concat_df;
 
 const SHACL_NODE_SHAPE: &str = "http://www.w3.org/ns/shacl#NodeShape";
 const SHACL_TARGET_NODE: &str = "http://www.w3.org/ns/shacl#targetNode";
@@ -26,6 +27,7 @@ const SHACL_ONE_OR_MORE_PATH: &str = "http://www.w3.org/ns/shacl#oneOrMorePath";
 const SHACL_ZERO_OR_ONE_PATH: &str = "http://www.w3.org/ns/shacl#zeroOrOnePath";
 const SHACL_FIRST: &str = "http://www.w3.org/ns/shacl#first";
 const SHACL_REST: &str = "http://www.w3.org/ns/shacl#rest";
+const SHACL_PATH: &str = "http://www.w3.org/ns/shacl#path";
 
 impl Triplestore {
     pub(crate) fn get_shape_graph(&self) -> Result<Vec<NodeShape>, ShaclError> {
@@ -34,7 +36,7 @@ impl Triplestore {
         //["subject", "object"]
         let mut target_declaration_map = self.get_target_declarations()?;
         //["subject", "object"]
-        let mut properties_map = self.get_properties_map()?;
+        let mut properties_map = self.get_property_shape_map()?;
         if let Some(node_shapes_df) = node_shapes_df {
             let mut node_iter = node_shapes_df.column("subject").unwrap().iter();
             let mut node_shapes = vec![];
@@ -199,7 +201,7 @@ impl Triplestore {
                     .get_lazy_frames()
                     .map_err(|x| ShaclError::TriplestoreError(x))?;
                 for lf in lfs {
-                    property_rel.push(lf);
+                    property_rels.push(lf);
                 }
             }
         }
@@ -209,12 +211,13 @@ impl Triplestore {
             .unwrap();
         let mut subj_iter = property_df.column("subject").unwrap().iter();
         let mut obj_iter = property_df.column("object").unwrap().iter();
-        let mut map = HashMap::new();
+        let mut map: HashMap<&str, Vec<PropertyShape>> = HashMap::new();
 
-        let mut paths_map = self.get_path_map()?;
-        let mut constraints_map = self.get_constraints_map()?;
+        let (props_map, first_map, rest_map) = self.get_maps()?;
+        let mut paths_map = self.get_path_map(&props_map, &first_map, &rest_map)?;
+        let mut constraints_map = self.get_constraints_map(&props_map)?;
 
-        for _ in property_df.height() {
+        for _ in 0..property_df.height() {
             let node_str = if let Some(AnyValue::Utf8(s)) = subj_iter.next() {
                 s
             } else {
@@ -230,18 +233,32 @@ impl Triplestore {
             } else {
                 return Err(ShaclError::PropertyMissingPath(prop_str.to_string()));
             };
+            let constraints = if let Some(cs) = constraints_map.remove(prop_str) {
+                cs
+            } else {
+                vec![]
+            };
             let property = PropertyShape {
                 path,
                 name: None,
                 description: None,
-                constraints: vec![],
+                constraints,
             };
+            if let Some(v) = map.get_mut(node_str) {
+                v.push(property);
+            } else {
+                map.insert(node_str, vec![property]);
+            }
         }
-
-        let mut path_rels = vec![];
+        Ok(map)
     }
 
-    fn get_path_map<'a>(&'a self) -> Result<HashMap<&'a str, Path>, ShaclError> {
+    fn get_path_map<'a>(
+        &'a self,
+        props_map: &HashMap<&str, (&str, &str)>,
+        first_map: &HashMap<&str, &str>,
+        rest_map: &HashMap<&str, &str>,
+    ) -> Result<HashMap<&'a str, Path>, ShaclError> {
         let mut out_map = HashMap::new();
         let mut path_rels = vec![];
         if let Some(map) = self.df_map.get(SHACL_PATH) {
@@ -250,17 +267,15 @@ impl Triplestore {
                     .get_lazy_frames()
                     .map_err(|x| ShaclError::TriplestoreError(x))?;
                 for lf in lfs {
-                    let df = lf.column.collect().unwrap();
+                    let df = lf.collect().unwrap();
                     path_rels.push(df);
                 }
             }
         }
-        let df = concat(path_rels, true, true).unwrap().collect().unwrap();
+        let df = concat_df(path_rels.as_slice()).unwrap();
 
         let mut prop_iter = df.column("subject").unwrap().iter();
         let mut path_elem_iter = df.column("object").unwrap().iter();
-
-        let (props_map, first_map, rest_map) = self.get_maps()?;
 
         for _ in 0..df.height() {
             let prop = prop_iter.next();
@@ -293,7 +308,7 @@ impl Triplestore {
                         .get_lazy_frames()
                         .map_err(|x| ShaclError::TriplestoreError(x))?
                     {
-                        lf = lf.with_column(lit(verb).alias("verb"));
+                        lf = lf.with_column(lit(verb.to_string()).alias("verb"));
                         lfs.push(lf)
                     }
                 }
@@ -302,7 +317,7 @@ impl Triplestore {
                         .get_lazy_frames()
                         .map_err(|x| ShaclError::TriplestoreError(x))?
                     {
-                        lf = lf.with_column(lit(verb).alias("verb"));
+                        lf = lf.with_column(lit(verb.to_string()).alias("verb"));
                         lfs.push(lf)
                     }
                 }
@@ -311,7 +326,16 @@ impl Triplestore {
         Ok(concat(lfs, true, true).unwrap().collect().unwrap())
     }
 
-    fn get_maps(&self) -> Result<(HashMap<&str, (&str, &str)>, HashMap<&str, &str>, HashMap<&str, &str>), ShaclError> {
+    fn get_maps(
+        &self,
+    ) -> Result<
+        (
+            HashMap<&str, (&str, &str)>,
+            HashMap<&str, &str>,
+            HashMap<&str, &str>,
+        ),
+        ShaclError,
+    > {
         let any_object_property_df = self.get_any_nonpath_object_property_df()?;
         let mut props_map = HashMap::new();
         let mut first_map = HashMap::new();
@@ -327,17 +351,17 @@ impl Triplestore {
             let subj_str;
             let verb_str;
             let obj_str;
-            if let Some(AnyValue::Utf8(s)) = subj {
+            if let AnyValue::Utf8(s) = subj {
                 subj_str = s
             } else {
                 panic!("Subject always string");
             }
-            if let Some(AnyValue::Utf8(s)) = verb {
+            if let AnyValue::Utf8(s) = verb {
                 verb_str = s
             } else {
                 panic!("Verb always string");
             }
-            if let Some(AnyValue::Utf8(s)) = obj {
+            if let AnyValue::Utf8(s) = obj {
                 obj_str = s
             } else {
                 panic!("Object always string");
@@ -351,10 +375,6 @@ impl Triplestore {
             }
         }
         Ok((props_map, first_map, rest_map))
-    }
-
-    fn get_constraints_map(&self, props_map: &HashMap<&str, (&str, &str)>) -> HashMap<&str, Vec<Constraint>> {
-        todo!()
     }
 }
 
@@ -385,10 +405,10 @@ fn create_property_path(
                     e, props_map, first_map, rest_map,
                 )?));
             }
-            if verb == SHACL_ALTERNATIVE_PATH {
+            if verb == &SHACL_ALTERNATIVE_PATH {
                 return Ok(Path::Alternative(paths));
-            } else if verb == SHACL_SEQUENCE_PATH {
-                return OK(Path::Sequence(paths));
+            } else if verb == &SHACL_SEQUENCE_PATH {
+                return Ok(Path::Sequence(paths));
             } else {
                 panic!("Will never happen")
             }
