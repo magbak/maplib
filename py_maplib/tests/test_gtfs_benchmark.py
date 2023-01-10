@@ -320,7 +320,7 @@ def mapping() -> Mapping:
     return m
 
 
-@pytest.skip("dataset not yet in git")
+@pytest.mark.skip("dataset not yet in git")
 def test_q15(mapping):
     query = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
