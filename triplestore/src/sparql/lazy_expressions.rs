@@ -1,20 +1,20 @@
 mod exists_helper;
 
+use std::collections::HashMap;
 use super::Triplestore;
 
 use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
 use polars::functions::concat_str;
 use polars::lazy::dsl::is_not_null;
-use polars::prelude::{col, Expr, LiteralValue, Operator, Series, UniqueKeepStrategy, IntoLazy};
-use polars_core::prelude::IntoSeries;
+use polars::prelude::{col, Expr, LiteralValue, Operator, Series, UniqueKeepStrategy, IntoLazy, IntoSeries};
 use spargebra::algebra::{Expression, Function};
 use representation::RDFNodeType;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::lazy_expressions::exists_helper::rewrite_exists_graph_pattern;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::SolutionMappings;
-use crate::sparql::sparql_to_polars::{sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value};
+use crate::sparql::sparql_to_polars::{sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value, sparql_term_to_polars_literal_value};
 
 impl Triplestore {
     pub fn lazy_expression(
@@ -590,27 +590,31 @@ impl Triplestore {
                 output_solution_mappings
             }
             Expression::FunctionCall(func, args) => {
-                let args_contexts: Vec<Context> = (0..args.len())
-                    .map(|i| context.extension_with(PathEntry::FunctionCall(i as u16)))
-                    .collect();
+                let mut args_contexts: HashMap<usize, Context> = HashMap::new();
                 let mut output_solution_mappings = solution_mappings;
                 for i in 0..args.len() {
-                    let arg_context = args_contexts.get(i).unwrap();
-                    output_solution_mappings = self
-                        .lazy_expression(
-                            args.get(i).unwrap(),
-                            output_solution_mappings,
-                            arg_context,
-                        )?;
-                    output_solution_mappings.mappings = output_solution_mappings.mappings
-                        .collect()
-                        .unwrap()
-                        .lazy(); //TODO: workaround for stack overflow - post bug?
+                    let arg = args.get(i).unwrap();
+                    if let Expression::Literal(_) = arg {
+                        // No operation here..
+                    } else {
+                        let arg_context = context.extension_with(PathEntry::FunctionCall(i as u16));
+                        output_solution_mappings = self
+                            .lazy_expression(
+                                args.get(i).unwrap(),
+                                output_solution_mappings,
+                                &arg_context,
+                            )?;
+                        args_contexts.insert(i, arg_context);
+                        output_solution_mappings.mappings = output_solution_mappings.mappings
+                            .collect()
+                            .unwrap()
+                            .lazy(); //TODO: workaround for stack overflow - post bug?
+                    }
                 }
                 match func {
                     Function::Year => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -622,7 +626,7 @@ impl Triplestore {
                     }
                     Function::Month => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -634,7 +638,7 @@ impl Triplestore {
                     }
                     Function::Day => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -646,7 +650,7 @@ impl Triplestore {
                     }
                     Function::Hours => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -658,7 +662,7 @@ impl Triplestore {
                     }
                     Function::Minutes => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -670,7 +674,7 @@ impl Triplestore {
                     }
                     Function::Seconds => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -682,7 +686,7 @@ impl Triplestore {
                     }
                     Function::Abs => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str()).abs().alias(context.as_str()),
@@ -692,7 +696,7 @@ impl Triplestore {
                     }
                     Function::Ceil => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str()).ceil().alias(context.as_str()),
@@ -701,7 +705,7 @@ impl Triplestore {
                     }
                     Function::Floor => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str()).floor().alias(context.as_str()),
@@ -712,9 +716,8 @@ impl Triplestore {
                         assert!(args.len() > 1);
                         let SolutionMappings { mappings, columns, rdf_node_types: datatypes } = output_solution_mappings;
                         let mut inner_df = mappings.collect().unwrap();
-                        let series = args_contexts
-                            .iter()
-                            .map(|c| inner_df.column(c.as_str()).unwrap().clone())
+                        let series = (0..args.len())
+                            .map(|i| inner_df.column(args_contexts.get(&i).unwrap().as_str()).unwrap().clone())
                             .collect::<Vec<Series>>();
                         let mut concat_series =
                             concat_str(series.as_slice(), "").unwrap().into_series();
@@ -725,7 +728,7 @@ impl Triplestore {
                     }
                     Function::Round => {
                         assert_eq!(args.len(), 1);
-                        let first_context = args_contexts.get(0).unwrap();
+                        let first_context = args_contexts.get(&0).unwrap();
                         output_solution_mappings.mappings =
                             output_solution_mappings.mappings.with_column(
                                 col(&first_context.as_str())
@@ -735,11 +738,26 @@ impl Triplestore {
                         let existing_type = output_solution_mappings.rdf_node_types.get(first_context.as_str()).unwrap();
                         output_solution_mappings.rdf_node_types.insert(context.as_str().to_string(), existing_type.clone());
                     }
+                    Function::Regex => {
+                        if args.len() != 2 {
+                            todo!("Unsupported amount of regex args {:?}", args); }
+                        else {
+                            let first_context = args_contexts.get(&0).unwrap();
+                            if let Expression::Literal(l) = args.get(1).unwrap() {
+                                output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    col(&first_context.as_str()).str().contains(l.value())
+                                        .alias(context.as_str()),
+                                );
+                                output_solution_mappings.rdf_node_types.insert(context.as_str().to_string(), RDFNodeType::Literal(xsd::STRING.into_owned()));
+                            }
+                        }
+                    }
                     Function::Custom(nn) => {
                         let iri = nn.as_str();
                         if iri == xsd::INTEGER.as_str() {
                             assert_eq!(args.len(), 1);
-                            let first_context = args_contexts.get(0).unwrap();
+                            let first_context = args_contexts.get(&0).unwrap();
                             output_solution_mappings.mappings =
                                 output_solution_mappings.mappings.with_column(
                                     col(&first_context.as_str())
@@ -750,7 +768,7 @@ impl Triplestore {
 
                         } else if iri == xsd::STRING.as_str() {
                             assert_eq!(args.len(), 1);
-                            let first_context = args_contexts.get(0).unwrap();
+                            let first_context = args_contexts.get(&0).unwrap();
                             output_solution_mappings.mappings =
                                 output_solution_mappings.mappings.with_column(
                                     col(&first_context.as_str())
@@ -769,7 +787,7 @@ impl Triplestore {
                 output_solution_mappings.mappings = output_solution_mappings.mappings.drop_columns(
                     args_contexts
                         .iter()
-                        .map(|x| x.as_str())
+                        .map(|(_,x)| x.as_str())
                         .collect::<Vec<&str>>(),
                 );
                 output_solution_mappings

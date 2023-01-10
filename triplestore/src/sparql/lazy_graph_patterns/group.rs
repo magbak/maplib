@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use log::debug;
 use super::Triplestore;
 use oxrdf::{Variable};
-use polars::prelude::{col, Expr};
+use polars::prelude::{col, Expr, lit};
 use spargebra::algebra::{AggregateExpression, GraphPattern};
+use uuid::Uuid;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::lazy_aggregate::AggregateReturn;
 use crate::sparql::query_context::{Context, PathEntry};
@@ -22,7 +23,14 @@ impl Triplestore {
         let inner_context = context.extension_with(PathEntry::GroupInner);
 
         let mut output_solution_mappings = self.lazy_graph_pattern(inner, solution_mapping,  &inner_context)?;
-        let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
+        let by:Vec<Expr>;
+        let dummy_varname = Uuid::new_v4().to_string();
+        if variables.len() == 0 {
+            by = vec![col(&dummy_varname)];
+            output_solution_mappings.mappings = output_solution_mappings.mappings.with_column(lit(true).alias(&dummy_varname))
+        } else {
+            by = variables.iter().map(|v| col(v.as_str())).collect();
+        };
 
         let mut aggregate_expressions = vec![];
         let mut aggregate_inner_contexts = vec![];
@@ -65,6 +73,9 @@ impl Triplestore {
         }
         for (v, _) in aggregates {
             columns.insert(v.as_str().to_string());
+        }
+        if variables.is_empty() {
+            mappings = mappings.drop_columns([dummy_varname]);
         }
         Ok(SolutionMappings::new(mappings, columns, datatypes))
     }

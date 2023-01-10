@@ -1,5 +1,5 @@
 use super::Triplestore;
-use polars::prelude::concat;
+use polars::prelude::{diag_concat_lf};
 use spargebra::algebra::GraphPattern;
 use log::debug;
 use crate::sparql::errors::SparqlError;
@@ -43,7 +43,7 @@ impl Triplestore {
             ?;
 
         let output_mappings =
-            concat(vec![left_mappings, right_mappings], true, true).expect("Concat problem");
+            diag_concat_lf(vec![left_mappings, right_mappings], true, true).expect("Concat problem");
         left_columns.extend(right_columns);
         for (v, dt) in right_datatypes.drain() {
             if let Some(left_dt) = left_datatypes.get(&v) {

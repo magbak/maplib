@@ -3,6 +3,7 @@ use oxrdf::{Literal, NamedNode, Term};
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
 use polars::prelude::{LiteralValue, NamedFrom, Series, TimeUnit};
 use std::str::FromStr;
+use chrono::{NaiveDate, NaiveTime};
 
 pub(crate) fn sparql_term_to_polars_literal_value(term: &Term) -> polars::prelude::LiteralValue {
     match term {
@@ -59,7 +60,18 @@ pub(crate) fn sparql_literal_to_polars_literal_value(lit: &Literal) -> LiteralVa
                 panic!("Could not parse datetime: {}", value);
             }
         }
-    } else if datatype == xsd::DECIMAL {
+    } else if datatype == xsd::DATE {
+        let ymd_string:Vec<&str> = value.split("-").collect();
+        if ymd_string.len() != 3 {
+            todo!("Unsupported date format {}", value)
+        }
+        let y = i32::from_str(ymd_string.get(0).unwrap()).expect(&format!("Year parsing error {}", ymd_string.get(0).unwrap()));
+        let m = u32::from_str(ymd_string.get(1).unwrap()).expect(&format!("Month parsing error {}", ymd_string.get(1).unwrap()));
+        let d = u32::from_str(ymd_string.get(1).unwrap()).expect(&format!("Day parsing error {}", ymd_string.get(1).unwrap()));
+        let date = NaiveDate::from_ymd_opt(y, m, d).unwrap().and_hms_opt(0,0,0).unwrap();
+        LiteralValue::DateTime(date, TimeUnit::Milliseconds)
+    }
+    else if datatype == xsd::DECIMAL {
         let d = f64::from_str(value).expect("Decimal parsing error");
         LiteralValue::Float64(d)
     } else {

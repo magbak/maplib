@@ -1,9 +1,9 @@
 #[cfg(test)]
 use crate::ast::{Directive, ListExpanderType, Prefix, StottrVariable};
 #[cfg(test)]
-use crate::nom_parsing::whole_stottr_doc;
+use crate::parsing::whole_stottr_doc;
 #[cfg(test)]
-use crate::nom_parsing::parsing_ast::{
+use crate::parsing::parsing_ast::{
     PrefixedName, ResolvesToNamedNode, UnresolvedAnnotation, UnresolvedArgument,
     UnresolvedConstantLiteral, UnresolvedConstantTerm, UnresolvedDefaultValue, UnresolvedInstance,
     UnresolvedPType, UnresolvedParameter, UnresolvedSignature, UnresolvedStatement,
@@ -1254,4 +1254,45 @@ fn test_spec_example_4() {
         })],
     };
     assert_eq!(expected, doc);
+}
+
+#[test]
+fn test_trailing_commas_and_rdftype_shorthand() {
+    let s = r#"
+@prefix rr:<http://www.w3.org/ns/r2rml#>.
+@prefix foaf:<http://xmlns.com/foaf/0.1/>.
+@prefix xsd:<http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs:<http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dc:<http://purl.org/dc/elements/1.1/>.
+@prefix rev:<http://purl.org/stuff/rev#>.
+@prefix gtfs:<http://vocab.gtfs.org/terms#>.
+@prefix geo:<http://www.w3.org/2003/01/geo/wgs84_pos#>.
+@prefix schema:<http://schema.org/>.
+@prefix dct:<http://purl.org/dc/terms/>.
+@prefix rml:<http://semweb.mmlab.be/ns/rml#>.
+@prefix ql:<http://semweb.mmlab.be/ns/ql#>.
+@prefix rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix t:<https://github.com/magbak/maplib/benchmark/template#>.
+
+t:Stops [ xsd:anyURI ?stop_id, ?stop_code, ?stop_name, ?stop_desc, ?stop_lat, ?stop_lon, ??zone_id,
+          xsd:anyURI ?stop_url, xsd:anyURI ?location_type, ? xsd:anyURI ?parent_station, ??stop_timezone, ?wheelchair_boarding
+          , ] :: {
+  ottr:Triple(?stop_id, a, gtfs:Stop) ,
+  ottr:Triple(?stop_id, gtfs:code, ?stop_code) ,
+  ottr:Triple(?stop_id, dct:identifier, ?stop_id) ,
+  ottr:Triple(?stop_id, foaf:name, ?stop_name) ,
+  ottr:Triple(?stop_id, dct:description, ?stop_desc) ,
+  ottr:Triple(?stop_id, geo:lat, ?stop_lat) ,
+  ottr:Triple(?stop_id, geo:long, ?stop_lon) ,
+  ottr:Triple(?stop_id, gtfs:zone, ?zone_id) ,
+  ottr:Triple(?stop_id, foaf:page, ?stop_url) ,
+  ottr:Triple(?stop_id, gtfs:locationType, ?location_type) ,
+  ottr:Triple(?stop_id, gtfs:parentStation, ?parent_station) ,
+  ottr:Triple(?stop_id, gtfs:timeZone, ?stop_timezone) ,
+  ottr:Triple(?stop_id, gtfs:wheelchairAccessible, ?wheelchair_boarding)
+
+  ,
+} . "#;
+    let _doc = whole_stottr_doc(s).expect("Ok");
+    //No assert, enough that we are parsing it
 }

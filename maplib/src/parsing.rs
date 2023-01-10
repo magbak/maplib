@@ -6,6 +6,7 @@ use nom::Finish;
 pub mod errors;
 mod nom_parsing;
 pub mod parsing_ast;
+mod parser_test;
 
 pub fn whole_stottr_doc(s: &str) -> Result<UnresolvedStottrDocument, ParsingError> {
     let result = stottr_doc(s).finish();

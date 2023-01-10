@@ -20,7 +20,7 @@ use nom::combinator::opt;
 use nom::multi::{count, many0, many1, separated_list0, separated_list1};
 use nom::sequence::tuple;
 use nom::IResult;
-use oxrdf::vocab::xsd;
+use oxrdf::vocab::{rdf, xsd};
 use oxrdf::{BlankNode, NamedNode};
 
 enum DirectiveStatement {
@@ -80,12 +80,14 @@ fn signature_as_statement(s: &str) -> IResult<&str, UnresolvedStatement> {
 }
 
 fn signature(s: &str) -> IResult<&str, UnresolvedSignature> {
-    let (s, (template_name, _, _, _, parameter_list, _, _, _, annotation_list)) = tuple((
+    let (s, (template_name, _, _, _, parameter_list, _, _, _, _, _, annotation_list)) = tuple((
         template_name,
         multispace0,
         tag("["),
         multispace0,
         separated_list0(tag(","), parameter),
+        multispace0,
+        opt(tag(",")), //We permit a trailing comma.
         multispace0,
         tag("]"),
         multispace0,
@@ -227,7 +229,7 @@ fn list_expand(l: &str) -> IResult<&str, &str> {
 }
 
 fn pattern_list(p: &str) -> IResult<&str, Vec<UnresolvedInstance>> {
-    let (p, (_, ilist, _)) = tuple((tag("{"), separated_list0(tag(","), instance), tag("}")))(p)?;
+    let (p, (_, ilist,_,_, _)) = tuple((tag("{"), separated_list0(tag(","), instance), opt(tag(",")), multispace0, tag("}")))(p)?;
     Ok((p, ilist))
 }
 
@@ -710,7 +712,7 @@ fn prefix_id(p: &str) -> IResult<&str, Prefix> {
 }
 
 fn iri(i: &str) -> IResult<&str, ResolvesToNamedNode> {
-    let (i, rtnn) = alt((iri_ref_as_resolves, prefixed_name_as_resolves))(i)?;
+    let (i, rtnn) = alt((iri_ref_as_resolves, prefixed_name_as_resolves, a_rdftype_as_resolves))(i)?;
     Ok((i, rtnn))
 }
 
@@ -741,6 +743,19 @@ fn iri_ref(i: &str) -> IResult<&str, NamedNode> {
     )
     .expect("Invalid IRI");
     Ok((i, nn))
+}
+
+fn a_rdftype_as_resolves(a:&str) -> IResult<&str, ResolvesToNamedNode> {
+    let (a, nn) = a_rdftype(a)?;
+    Ok((a, ResolvesToNamedNode::NamedNode(nn)))
+}
+
+fn a_rdftype(r:&str) -> IResult<&str, NamedNode> {
+    let (r, _) = tag("a")(r)?;
+    Ok((
+        r,
+        rdf::TYPE.into_owned()
+        ))
 }
 
 fn pname_ns_as_prefixed_name(p: &str) -> IResult<&str, PrefixedName> {

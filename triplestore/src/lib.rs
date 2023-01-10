@@ -327,7 +327,7 @@ pub fn prepare_triples(
             let predicate;
             {
                 let any_predicate = part.column("verb").unwrap().get(0);
-                if let AnyValue::Utf8(p) = any_predicate {
+                if let Ok(AnyValue::Utf8(p)) = any_predicate {
                     predicate = p.to_string();
                 } else {
                     panic!()

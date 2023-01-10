@@ -30,7 +30,8 @@ impl Triplestore {
                     if m.is_empty() {
                         panic!("Empty map should never happen");
                     } else if m.len() > 1 {
-                        todo!("Multiple datatypes not supported yet")
+                        let dts:Vec<&RDFNodeType> = m.keys().collect();
+                        todo!("Multiple datatypes not supported yet {:?} {:?}", n, dts);
                     } else {
                         let (dt, tt) = m.iter().next().unwrap();
                         assert!(tt.unique, "Should be deduplicated");
@@ -127,16 +128,16 @@ impl Triplestore {
                                 let join_col_exprs: Vec<Expr> =
                                     join_cols.iter().map(|x| col(x)).collect();
                                 let all_false = [false].repeat(join_cols.len());
-                                lf = lf.sort_by_exprs(
-                                    join_col_exprs.as_slice(),
-                                    all_false.as_slice(),
-                                    false,
-                                );
-                                mappings.mappings = mappings.mappings.sort_by_exprs(
-                                    join_col_exprs.as_slice(),
-                                    all_false.as_slice(),
-                                    false,
-                                );
+                                // lf = lf.sort_by_exprs(
+                                //     join_col_exprs.as_slice(),
+                                //     all_false.as_slice(),
+                                //     false,
+                                // );
+                                // mappings.mappings = mappings.mappings.sort_by_exprs(
+                                //     join_col_exprs.as_slice(),
+                                //     all_false.as_slice(),
+                                //     false,
+                                // );
                                 mappings.mappings = mappings.mappings.join(
                                     lf,
                                     join_on.as_slice(),
