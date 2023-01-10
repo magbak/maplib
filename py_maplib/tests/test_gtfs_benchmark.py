@@ -338,7 +338,7 @@ SELECT * WHERE {
 """
     print(mapping.query(query))
 
-@pytest.skip("dataset not yet in git")
+@pytest.mark.skip("dataset not yet in git")
 def test_q7(mapping):
     query = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -377,7 +377,7 @@ WHERE {
 }
 """
     print(mapping.query(query))
-@pytest.skip("dataset not yet in git")
+@pytest.mark.skip("dataset not yet in git")
 def test_queries(mapping):
     query_path = GTFS_PATH / "queries"
     errors = 0
