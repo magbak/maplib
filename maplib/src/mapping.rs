@@ -275,14 +275,14 @@ impl Mapping {
                             instance_series.push(series_map.remove(v).unwrap());
                         }
                     }
-                    expand_params_vec.push((i, DataFrame::new(instance_series).unwrap()));
+                    expand_params_vec.push((i, instance_series));
                 }
 
                 debug!("Cloning args took {} seconds", now.elapsed().as_secs_f64());
 
                 let results: Vec<Result<Vec<OTTRTripleInstance>, MappingError>> = expand_params_vec
                     .par_drain(..)
-                    .map(|(i, df)| {
+                    .map(|(i, series_vec)| {
                         let target_template =
                             self.template_dataset.get(i.template_name.as_str()).unwrap();
                         let (
@@ -293,7 +293,7 @@ impl Mapping {
                         ) = create_remapped(
                             i,
                             &target_template.signature,
-                            df,
+                            series_vec,
                             &dynamic_columns,
                             &static_columns,
                             &unique_subsets,
@@ -453,7 +453,7 @@ fn create_dynamic_expression_from_static(
 fn create_remapped(
     instance: &Instance,
     signature: &Signature,
-    df: DataFrame,
+    mut series_vec: Vec<Series>,
     dynamic_columns: &HashMap<String, PrimitiveColumn>,
     constant_columns: &HashMap<String, StaticColumn>,
     unique_subsets: &Vec<Vec<String>>,
@@ -469,11 +469,14 @@ fn create_remapped(
     let now = Instant::now();
     let mut new_dynamic_columns = HashMap::new();
     let mut new_constant_columns = HashMap::new();
-    let mut existing = vec![];
-    let mut new = vec![];
+
     let mut new_dynamic_from_constant = vec![];
     let mut to_expand = vec![];
     let mut expressions = vec![];
+    let mut existing = vec![];
+    let mut new = vec![];
+    let mut rename_map: HashMap<&String, Vec<&String>> = HashMap::new();
+
     for (original, target) in instance
         .argument_list
         .iter()
@@ -486,6 +489,12 @@ fn create_remapped(
         match &original.term {
             StottrTerm::Variable(v) => {
                 if let Some(c) = dynamic_columns.get(&v.name) {
+                    if let Some(target_names) = rename_map.get_mut(&&v.name) {
+                        target_names.push(target_colname)
+                    } else {
+                        rename_map.insert(&v.name, vec![target_colname]);
+                    }
+
                     existing.push(&v.name);
                     new.push(target_colname);
                     new_dynamic_columns.insert(target_colname.clone(), c.clone());
@@ -515,14 +524,12 @@ fn create_remapped(
             }
         }
     }
-    let mut lf = df.lazy();
 
-    // TODO: Remove workaround likely bug in Pola.rs 0.25.1
-    lf = lf
-        .rename(existing.as_slice(), new.as_slice())
-        .collect()
-        .unwrap()
-        .lazy();
+    for s in &mut series_vec {
+        let sname = s.name().to_string();
+        s.rename(rename_map.get_mut(&sname).unwrap().pop().unwrap());
+    }
+    let mut lf = DataFrame::new(series_vec).unwrap().lazy();
 
     for expr in expressions {
         lf = lf.with_column(expr);
@@ -567,13 +574,12 @@ fn create_remapped(
             }
         }
     }
-    let df = lf.collect().unwrap();
     debug!(
         "Creating remapped took {} seconds",
         now.elapsed().as_secs_f32()
     );
     Ok((
-        df,
+        lf.collect().unwrap(),
         new_dynamic_columns,
         new_constant_columns,
         new_unique_subsets,
