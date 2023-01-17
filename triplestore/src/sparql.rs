@@ -12,8 +12,6 @@ use oxrdf::{NamedNode, Variable};
 use std::collections::HashMap;
 
 use super::Triplestore;
-use representation::literals::sparql_literal_to_any_value;
-use representation::RDFNodeType;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::solution_mapping::SolutionMappings;
 use crate::TriplesToAdd;
@@ -21,6 +19,8 @@ use polars::frame::DataFrame;
 use polars::prelude::{col, IntoLazy};
 use polars_core::prelude::{DataType, Series, UniqueKeepStrategy};
 use polars_core::toggle_string_cache;
+use representation::literals::sparql_literal_to_any_value;
+use representation::RDFNodeType;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 use spargebra::Query;
 use uuid::Uuid;
@@ -54,19 +54,10 @@ impl Triplestore {
                     columns: _,
                     rdf_node_types: _,
                 } = self.lazy_graph_pattern(&pattern, None, &context)?;
-                let df = mappings.collect().unwrap();
-                let mut cats = vec![];
-                for c in df.columns(df.get_column_names()).unwrap() {
-                    if let DataType::Categorical(_) = c.dtype() {
-                        cats.push(c.name().to_string());
-                    }
-                }
-                let mut lf = df.lazy();
-                for c in cats {
-                    lf = lf.with_column(col(&c).cast(DataType::Utf8))
-                }
+                let mut df = mappings.collect().unwrap();
+                df = cats_to_utf8s(df);
 
-                Ok(QueryResult::Select(lf.collect().unwrap()))
+                Ok(QueryResult::Select(df))
             }
             Query::Construct {
                 template,
@@ -79,7 +70,8 @@ impl Triplestore {
                     columns: _,
                     rdf_node_types,
                 } = self.lazy_graph_pattern(&pattern, None, &context)?;
-                let df = mappings.collect().unwrap();
+                let mut df = mappings.collect().unwrap();
+                df = cats_to_utf8s(df);
                 let mut dfs = vec![];
                 for t in template {
                     dfs.push(triple_to_df(&df, &rdf_node_types, t)?);
@@ -210,4 +202,18 @@ fn variable_series(
     let mut ser = df.column(v.as_str()).unwrap().clone();
     ser.rename(name);
     (ser, rdf_node_types.get(v.as_str()).unwrap().clone())
+}
+
+fn cats_to_utf8s(df: DataFrame) -> DataFrame {
+    let mut cats = vec![];
+    for c in df.columns(df.get_column_names()).unwrap() {
+        if let DataType::Categorical(_) = c.dtype() {
+            cats.push(c.name().to_string());
+        }
+    }
+    let mut lf = df.lazy();
+    for c in cats {
+        lf = lf.with_column(col(&c).cast(DataType::Utf8))
+    }
+    return lf.collect().unwrap();
 }
