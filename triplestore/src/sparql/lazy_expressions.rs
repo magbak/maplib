@@ -14,7 +14,7 @@ use crate::sparql::errors::SparqlError;
 use crate::sparql::lazy_expressions::exists_helper::rewrite_exists_graph_pattern;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::SolutionMappings;
-use crate::sparql::sparql_to_polars::{sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value, sparql_term_to_polars_literal_value};
+use crate::sparql::sparql_to_polars::{sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value};
 
 impl Triplestore {
     pub fn lazy_expression(

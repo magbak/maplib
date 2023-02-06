@@ -271,8 +271,8 @@ impl Mapping {
         }
     }
 
-    pub fn construct_update(&mut self, query:String) -> PyResult<()> {
-        self.inner.triplestore.construct_update(&query).map_err(PyMaplibError::from)?;
+    pub fn insert(&mut self, query:String) -> PyResult<()> {
+        self.inner.triplestore.insert(&query).map_err(PyMaplibError::from)?;
         Ok(())
     }
 

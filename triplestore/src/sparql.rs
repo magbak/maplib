@@ -82,7 +82,7 @@ impl Triplestore {
         }
     }
 
-    pub fn construct_update(&mut self, query: &str) -> Result<(), SparqlError> {
+    pub fn insert(&mut self, query: &str) -> Result<(), SparqlError> {
         let call_uuid = Uuid::new_v4().to_string();
         let query = Query::parse(query, None).map_err(|x| SparqlError::ParseError(x))?;
         if let Query::Construct { .. } = &query {

@@ -312,8 +312,8 @@ def test_simple_construct_query(windpower_mapping):
     expected_nothing_df = pl.scan_csv(filename_nothing).sort(["subject", "object"]).collect()
     pl.testing.assert_frame_equal(nothing, expected_nothing_df)
 
-def test_simple_update_construct_query(windpower_mapping):
-    windpower_mapping.construct_update("""
+def test_simple_insert_construct_query(windpower_mapping):
+    windpower_mapping.insert("""
     PREFIX ct:<https://github.com/magbak/chrontext#>
     CONSTRUCT {
     ?a a ct:somethingTestit.
@@ -334,9 +334,9 @@ def test_simple_update_construct_query(windpower_mapping):
             ?a a ct:nothingTestit .
             }
         """).sort(["a"])
-    filename_something = TESTDATA_PATH / "simple_construct_update_query_something.csv"
+    filename_something = TESTDATA_PATH / "simple_insert_query_something.csv"
     #something.write_csv(filename_something)
-    filename_nothing = TESTDATA_PATH / "simple_construct_update_query_nothing.csv"
+    filename_nothing = TESTDATA_PATH / "simple_insert_query_nothing.csv"
     #nothing.write_csv(filename_nothing)
     expected_something_df = pl.scan_csv(filename_something).sort(["a"]).collect()
     pl.testing.assert_frame_equal(something, expected_something_df)

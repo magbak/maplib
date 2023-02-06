@@ -40,7 +40,7 @@ def pizzas_mapping():
         ?p a pizza:Pizza .
         ?p pizza:hasIngredient ing:Pineapple .
     }"""
-    m.construct_update(hpizzas)
+    m.insert(hpizzas)
     return m
 
 
