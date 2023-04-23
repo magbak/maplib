@@ -40,7 +40,7 @@ The Python API is documented [here](https://github.com/magbak/maplib/tree/main/d
 ## Installing pre-built wheels
 From the latest [release](https://github.com/magbak/maplib/releases), copy the appropriate .whl-file for your system, then run e.g.:
 ```shell
-pip install https://github.com/magbak/maplib/releases/download/v0.1.45/stottr-0.1.45-cp310-cp310-manylinux_2_31_x86_64.whl
+pip install https://github.com/magbak/maplib/releases/download/v0.4.1/maplib-0.4.1-cp310-cp310-manylinux_2_34_x86_64.whl
 ```
 
 All code is licensed to [Prediktor AS](https://www.prediktor.com/) under the Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree.  
