@@ -112,6 +112,7 @@ Indeed, we have added the triple:
 |str|
 |"https://github.com/magbak/maplib/pizza#Hawaiian"|
 
+## API
 The Python API is documented [here](https://github.com/magbak/maplib/tree/main/doc/python_mapper_api.md)
 
 ## Installing pre-built wheels
@@ -126,4 +127,5 @@ pip install https://github.com/magbak/maplib/releases/download/v0.4.1/maplib-0.4
 [2] M. G. Skjæveland, D. P. Lupp, L. H. Karlsen, and J. W. Klüwer, “Ottr: Formal templates for pattern-based ontology engineering.” in WOP (Book),
 2021, pp. 349–377.
 
+## Licensing
 All code is licensed to [Prediktor AS](https://www.prediktor.com/) under the Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree.  
