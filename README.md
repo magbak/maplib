@@ -122,6 +122,7 @@ pip install https://github.com/magbak/maplib/releases/download/v0.4.1/maplib-0.4
 
 ## References
 [1] M. Bakken, "maplib: Interactive, literal RDF model mapping for industry," in IEEE Access, doi: 10.1109/ACCESS.2023.3269093.
+
 [2] M. G. Skjæveland, D. P. Lupp, L. H. Karlsen, and J. W. Klüwer, “Ottr: Formal templates for pattern-based ontology engineering.” in WOP (Book),
 2021, pp. 349–377.
 
