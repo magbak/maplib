@@ -33,13 +33,12 @@ impl Triplestore {
         };
 
         let mut aggregate_expressions = vec![];
-        let mut aggregate_inner_contexts = vec![];
         let mut new_rdf_node_types = HashMap::new();
         for i in 0..aggregates.len() {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
             //(aggregate_solution_mappings, expr, used_context, datatype)
-            let AggregateReturn{ solution_mappings:aggregate_solution_mappings, expr, context:used_context, rdf_node_type }=
+            let AggregateReturn{ solution_mappings:aggregate_solution_mappings, expr, context:_, rdf_node_type }=
                 self.sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     a,
@@ -49,21 +48,12 @@ impl Triplestore {
             output_solution_mappings = aggregate_solution_mappings;
             new_rdf_node_types.insert(v.clone(), rdf_node_type);
             aggregate_expressions.push(expr);
-            if let Some(aggregate_inner_context) = used_context {
-                aggregate_inner_contexts.push(aggregate_inner_context);
-            }
         }
         let SolutionMappings { mut mappings, mut columns, rdf_node_types: mut datatypes } = output_solution_mappings;
         let grouped_mappings = mappings.groupby(by.as_slice());
 
         mappings = grouped_mappings
-            .agg(aggregate_expressions.as_slice())
-            .drop_columns(
-                aggregate_inner_contexts
-                    .iter()
-                    .map(|x| x.as_str())
-                    .collect::<Vec<&str>>(),
-            );
+            .agg(aggregate_expressions.as_slice());
         for (k,v) in new_rdf_node_types {
             datatypes.insert(k.as_str().to_string(),v);
         }

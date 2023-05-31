@@ -234,11 +234,11 @@ impl Mapping {
                     has_unique_subset: !unique_subsets.is_empty(),
                 }])
             } else {
-                let mut series_map: HashMap<String, Series> = df
-                    .get_columns_mut()
-                    .drain(..)
-                    .map(|x| (x.name().to_string(), x))
-                    .collect();
+                let mut series_map = HashMap::new();
+                for s in df.get_column_names() {
+                    series_map.insert(s.to_string(), df.column(s).unwrap().clone());
+                }
+
                 let number_of_series_map =
                     get_number_per_series_map(&template.pattern_list, &dynamic_columns);
                 let mut series_keys: Vec<&String> = number_of_series_map.keys().collect();

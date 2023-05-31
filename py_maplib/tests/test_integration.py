@@ -1,5 +1,6 @@
 from maplib import Mapping
 import pytest
+from polars.testing import assert_frame_equal
 import polars as pl
 from math import floor
 import pathlib
@@ -76,7 +77,7 @@ def windpower_mapping():
         "ExternalId": operating_external_ids,
         "Datatype": ["http://www.w3.org/2001/XMLSchema#boolean"] * n
     })
-    operating = operating.with_column(
+    operating = operating.with_columns(
         pl.Series("TimeseriesNodeIRI", [wpex] * operating.height) + operating["ExternalId"])
     mapping.expand("tpl:Timeseries", operating)
     maximum_power_values = [[5_000_000, 10_000_000, 15_000_000][i % 3] for i in range(1, n + 1)]
@@ -93,7 +94,7 @@ def windpower_mapping():
     def add_aspect_labeling_by_source(df: pl.DataFrame, prefix: str) -> pl.DataFrame:
         label_df = df.groupby("SourceIRI", maintain_order=True).apply(
             lambda x: pl.DataFrame({"Label": [prefix + str(i) for i in range(1, x.height + 1)]}))
-        df = df.with_column(label_df["Label"])
+        df = df.with_columns(label_df["Label"])
         return df
 
     target_aspect_node_iri = [wpex + "WindTurbineFunctionalAspect" + str(i) for i in range(1, n + 1)]
@@ -137,7 +138,7 @@ def windpower_mapping():
         "ExternalId": energy_production_external_ids,
         "Datatype": ["http://www.w3.org/2001/XMLSchema#double"] * n
     })
-    energy_production = energy_production.with_column(
+    energy_production = energy_production.with_columns(
         pl.Series("TimeseriesNodeIRI", [wpex] * energy_production.height) + energy_production["ExternalId"])
     mapping.expand("tpl:Timeseries", energy_production)
     generator_system_has_generator = pl.DataFrame({
@@ -164,7 +165,7 @@ def windpower_mapping():
         "ExternalId": wind_speed_external_ids,
         "Datatype": ["http://www.w3.org/2001/XMLSchema#double"] * n
     })
-    wind_speed = wind_speed.with_column(
+    wind_speed = wind_speed.with_columns(
         pl.Series("TimeseriesNodeIRI", [wpex] * wind_speed.height) + wind_speed["ExternalId"])
 
     mapping.expand("tpl:Timeseries", wind_speed)
@@ -175,7 +176,7 @@ def windpower_mapping():
         "ExternalId": wind_direction_external_ids,
         "Datatype": ["http://www.w3.org/2001/XMLSchema#double"] * n
     })
-    wind_direction = wind_direction.with_column(
+    wind_direction = wind_direction.with_columns(
         pl.Series("TimeseriesNodeIRI", [wpex] * wind_direction.height) + wind_direction["ExternalId"])
 
     mapping.expand("tpl:Timeseries", wind_direction)
@@ -227,7 +228,7 @@ SELECT ?site_label ?wtur_label ?ts ?ts_label WHERE {
     filename = TESTDATA_PATH / "larger_query.csv"
     #df.write_csv(filename)
     expected_df = pl.scan_csv(filename).sort(by).collect()
-    pl.testing.assert_frame_equal(df, expected_df)
+    assert_frame_equal(df, expected_df)
 
 def test_simple_property_path_query(windpower_mapping):
     query = """PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -292,7 +293,7 @@ SELECT ?site_label ?node_label WHERE {
     filename = TESTDATA_PATH / "iterated_property_path_query_with_bug.csv"
     #df.write_csv(filename)
     expected_df = pl.scan_csv(filename).sort(by).collect()
-    pl.testing.assert_frame_equal(df, expected_df)
+    assert_frame_equal(df, expected_df)
 
 def test_simple_construct_query(windpower_mapping):
     dfs = windpower_mapping.query("""
@@ -308,9 +309,9 @@ def test_simple_construct_query(windpower_mapping):
     filename_nothing = TESTDATA_PATH / "simple_construct_query_nothing.csv"
     #nothing.write_csv(filename_nothing)
     expected_something_df = pl.scan_csv(filename_something).sort(["subject", "object"]).collect()
-    pl.testing.assert_frame_equal(something, expected_something_df)
+    assert_frame_equal(something, expected_something_df)
     expected_nothing_df = pl.scan_csv(filename_nothing).sort(["subject", "object"]).collect()
-    pl.testing.assert_frame_equal(nothing, expected_nothing_df)
+    assert_frame_equal(nothing, expected_nothing_df)
 
 def test_simple_insert_construct_query(windpower_mapping):
     windpower_mapping.insert("""
@@ -339,6 +340,6 @@ def test_simple_insert_construct_query(windpower_mapping):
     filename_nothing = TESTDATA_PATH / "simple_insert_query_nothing.csv"
     #nothing.write_csv(filename_nothing)
     expected_something_df = pl.scan_csv(filename_something).sort(["a"]).collect()
-    pl.testing.assert_frame_equal(something, expected_something_df)
+    assert_frame_equal(something, expected_something_df)
     expected_nothing_df = pl.scan_csv(filename_nothing).sort(["a"]).collect()
-    pl.testing.assert_frame_equal(nothing, expected_nothing_df)
+    assert_frame_equal(nothing, expected_nothing_df)

@@ -28,7 +28,7 @@ pub fn convert_to_string(series: &Series) -> Option<Series> {
                     series
                         .datetime()
                         .unwrap()
-                        .strftime(XSD_DATETIME_WITHOUT_TZ_FORMAT)
+                        .strftime(XSD_DATETIME_WITHOUT_TZ_FORMAT).expect("Conversion OK")
                         .into_series(),
                 );
             }

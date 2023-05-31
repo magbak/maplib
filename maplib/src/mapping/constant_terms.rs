@@ -1,9 +1,9 @@
 use std::ops::Deref;
 use oxrdf::NamedNode;
 use oxrdf::vocab::xsd;
-use polars::prelude::{concat_lst, Expr, LiteralValue, SpecialEq};
+use polars::prelude::{concat_list, Expr, lit, LiteralValue, SpecialEq};
 use polars_core::datatypes::{DataType};
-use polars_core::prelude::{AnyValue, IntoSeries, Series};
+use polars_core::prelude::{AnyValue, IntoSeries, ListChunked, Series};
 use representation::literals::sparql_literal_to_any_value;
 use crate::ast::{ConstantLiteral, ConstantTerm, PType};
 use crate::constants::{BLANK_NODE_IRI, NONE_IRI};
@@ -82,7 +82,7 @@ pub fn constant_to_expr(
             let out_ptype = PType::ListType(Box::new(last_ptype.unwrap()));
             let out_rdf_node_type = last_rdf_node_type.as_ref().unwrap().clone();
 
-            if let RDFNodeType::Literal(lit) = last_rdf_node_type.as_ref().unwrap(){
+            if let RDFNodeType::Literal(_lit) = last_rdf_node_type.as_ref().unwrap(){
                 let mut all_series = vec![];
                 for ex in &expressions {
                     if let Expr::Literal(inner) = ex {
@@ -99,15 +99,15 @@ pub fn constant_to_expr(
                 for s in &all_series {
                     first.append(s).unwrap();
                 }
-                let out_series = first.to_list().unwrap().into_series();
+                let out_series = ListChunked::from_iter([first]).into_series();
                 (
-                    Expr::Literal(LiteralValue::Series(SpecialEq::new(out_series))),
+                    lit(out_series),
                     out_ptype,
                     out_rdf_node_type,
                     None
                 )
             } else {
-                (concat_lst(expressions), out_ptype, out_rdf_node_type, None)
+                (concat_list(expressions).expect("Concat OK"), out_ptype, out_rdf_node_type, None)
             }
         }
     };

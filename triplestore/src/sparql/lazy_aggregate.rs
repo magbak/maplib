@@ -150,24 +150,22 @@ impl Triplestore {
                 };
                 if *distinct {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8)
-                        .list()
+                        .cast(DataType::Utf8).list().0
                         .apply(
                             move |s| {
-                                Ok(s.unique_stable()
+                                Ok(Some(s.unique_stable()
                                     .expect("Unique stable error")
                                     .str_concat(use_sep.as_str())
-                                    .into_series())
+                                    .into_series()))
                             },
                             GetOutput::from_type(DataType::Utf8),
                         )
                         .first();
                 } else {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8)
-                        .list()
+                        .cast(DataType::Utf8).list().0
                         .apply(
-                            move |s| Ok(s.str_concat(use_sep.as_str()).into_series()),
+                            move |s| Ok(Some(s.str_concat(use_sep.as_str()).into_series())),
                             GetOutput::from_type(DataType::Utf8),
                         )
                         .first();

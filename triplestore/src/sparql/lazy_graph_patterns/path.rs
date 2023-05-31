@@ -205,7 +205,7 @@ impl Triplestore {
                 let df = self.get_single_nn_df(nn.as_str(), subject, object)?;
                 if let Some(df) = df {
                     let unique_cat_df = df_with_cats(df)
-                        .unique(None, UniqueKeepStrategy::First)
+                        .unique(None, UniqueKeepStrategy::First, None)
                         .unwrap();
                     Ok(HashMap::from([(nn.as_str().to_string(), unique_cat_df)]))
                 } else {
@@ -257,7 +257,7 @@ impl Triplestore {
                 if dfs.len() > 0 {
                     df = concat_df(dfs.as_slice())
                         .unwrap()
-                        .unique(None, UniqueKeepStrategy::First)
+                        .unique(None, UniqueKeepStrategy::First, None)
                         .unwrap();
                 } else {
                     df = DataFrame::new(vec![
@@ -340,7 +340,7 @@ fn find_lookup(map: &HashMap<String, DataFrame>) -> DataFrame {
     }
     let mut df = concat_df(all_values.as_slice())
         .unwrap()
-        .unique(None, UniqueKeepStrategy::First)
+        .unique(None, UniqueKeepStrategy::First, None)
         .unwrap();
     let mut key_col = df
         .column("value")
@@ -420,7 +420,7 @@ fn df_path(
             let df = df_left
                 .vstack(&df_right)
                 .unwrap()
-                .unique(None, UniqueKeepStrategy::First)
+                .unique(None, UniqueKeepStrategy::First, None)
                 .unwrap();
             DFPathReturn {
                 df,
@@ -441,7 +441,7 @@ fn df_path(
             let id_df = DataFrame::new(vec![all_subjects, all_objects]).unwrap();
             let df = concat_df([&df, &id_df]).unwrap();
             DFPathReturn {
-                df: df.unique(None, UniqueKeepStrategy::First).unwrap(),
+                df: df.unique(None, UniqueKeepStrategy::First, None).unwrap(),
                 soo,
                 dt,
             }

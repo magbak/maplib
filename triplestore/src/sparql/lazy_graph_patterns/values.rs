@@ -68,7 +68,7 @@ impl Triplestore {
         }
         let mut all_series = vec![];
         for (i,var) in variables.iter().enumerate() {
-            let series = Series::from_any_values(var.as_str(), col_vecs.get(&i).unwrap().as_slice()).unwrap();
+            let series = Series::from_any_values(var.as_str(), col_vecs.get(&i).unwrap().as_slice(), false).unwrap();
             all_series.push(series);
         }
         let df = DataFrame::new(all_series).unwrap();

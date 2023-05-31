@@ -18,7 +18,7 @@ use crate::TriplesToAdd;
 use polars::frame::DataFrame;
 use polars::prelude::{col, IntoLazy};
 use polars_core::prelude::{DataType, Series, UniqueKeepStrategy};
-use polars_core::toggle_string_cache;
+use polars_core::enable_string_cache;
 use representation::literals::sparql_literal_to_any_value;
 use representation::RDFNodeType;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
@@ -41,7 +41,7 @@ impl Triplestore {
             self.deduplicate()
                 .map_err(|x| SparqlError::DeduplicationError(x))?;
         }
-        toggle_string_cache(true);
+        enable_string_cache(true);
         let context = Context::new();
         match query {
             Query::Select {
@@ -128,7 +128,7 @@ fn triple_to_df(
     let (obj_ser, dt) = term_pattern_series(df, rdf_node_types, &t.object, "object", len);
     let df = DataFrame::new(vec![subj_ser, verb_ser, obj_ser])
         .unwrap()
-        .unique(None, UniqueKeepStrategy::First)
+        .unique(None, UniqueKeepStrategy::First, None)
         .unwrap();
     Ok((df, dt))
 }
@@ -165,7 +165,7 @@ fn term_pattern_series(
                 any_values.push(anyvalue.clone())
             }
             (
-                Series::from_any_values(name, &any_values).unwrap(),
+                Series::from_any_values(name, &any_values, false).unwrap(),
                 RDFNodeType::Literal(dt),
             )
         }

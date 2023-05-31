@@ -360,7 +360,7 @@ fn prepare_triples_df(
     has_unique_subset: bool,
 ) -> Option<TripleDF> {
     let now = Instant::now();
-    df = df.drop_nulls(None).unwrap();
+    df = df.drop_nulls::<String>(None).unwrap();
     if df.height() == 0 {
         return None;
     }
@@ -369,7 +369,7 @@ fn prepare_triples_df(
         now.elapsed().as_secs_f32()
     );
     if !has_unique_subset {
-        df = df.unique(None, UniqueKeepStrategy::First).unwrap();
+        df = df.unique(None, UniqueKeepStrategy::First, None).unwrap();
     }
     debug!(
         "Prepare single triple df unique before it is added took {} seconds",

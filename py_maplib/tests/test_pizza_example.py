@@ -1,5 +1,6 @@
 import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 
 from maplib import Mapping
 
@@ -54,4 +55,4 @@ def test_simple_query_no_error(pizzas_mapping):
     """)
 
     expected_df = pl.DataFrame({"p": ["https://github.com/magbak/maplib/pizza#Hawaiian"]})
-    pl.testing.assert_frame_equal(df, expected_df)
+    assert_frame_equal(df, expected_df)

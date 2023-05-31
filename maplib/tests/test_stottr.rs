@@ -381,6 +381,7 @@ ex:ExampleTemplate [
                 &Some("Europe/Oslo".to_string()),
             ),
         ],
+        false,
     )
     .unwrap();
     let datetime_ms = Series::from_any_values(
@@ -389,6 +390,7 @@ ex:ExampleTemplate [
             AnyValue::Datetime(1656842790789, TimeUnit::Milliseconds, &None),
             AnyValue::Datetime(1656842791101, TimeUnit::Milliseconds, &None),
         ],
+        false,
     )
     .unwrap();
 
@@ -631,7 +633,7 @@ ex:AnotherExampleTemplate [?object, ?predicate, ?myList] :: {
     let mut df = DataFrame::from_iter(series);
     df = df.lazy()
         .groupby_stable([col("object"), col("predicate")])
-        .agg([col("myList").list()]).collect()
+        .agg([col("myList").list().0]).collect()
         .unwrap();
     //println!("{df}");
     let _report = mapping
@@ -711,7 +713,7 @@ ex:AnotherExampleTemplate [?subject, ?myList1, ?myList2] :: {
     let mut df = DataFrame::from_iter(series);
     df = df.lazy()
         .groupby_stable([col("subject")])
-        .agg([col("myList1").list(), col("myList2").list()]).collect()
+        .agg([col("myList1").list().0, col("myList2").list().0]).collect()
         .unwrap();
 
     //println!("{df}");
@@ -893,7 +895,7 @@ fn test_default_list() {
     let mut df = DataFrame::from_iter(series);
     df = df.lazy()
         .groupby_stable([col("subject")])
-        .agg([col("myList1").drop_nulls().list(), col("myList2").list()]).collect()
+        .agg([col("myList1").drop_nulls().list().0, col("myList2").list().0]).collect()
         .unwrap();
     //println!("{df}");
     let _report = mapping

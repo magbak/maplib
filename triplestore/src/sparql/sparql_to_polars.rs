@@ -3,8 +3,7 @@ use oxrdf::{Literal, NamedNode, Term};
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
 use polars::prelude::{LiteralValue, NamedFrom, Series, TimeUnit};
 use std::str::FromStr;
-use chrono::{Datelike, NaiveDate, NaiveTime};
-use polars_core::prelude::{AnyValue, DataType};
+use chrono::{NaiveDate};
 
 pub(crate) fn sparql_term_to_polars_literal_value(term: &Term) -> polars::prelude::LiteralValue {
     match term {
@@ -52,11 +51,11 @@ pub(crate) fn sparql_literal_to_polars_literal_value(lit: &Literal) -> LiteralVa
     } else if datatype == xsd::DATE_TIME {
         let dt_without_tz = value.parse::<NaiveDateTime>();
         if let Ok(dt) = dt_without_tz {
-            LiteralValue::DateTime(dt, TimeUnit::Nanoseconds)
+            LiteralValue::DateTime(dt.timestamp(), TimeUnit::Nanoseconds, None)
         } else {
             let dt_without_tz = value.parse::<DateTime<Utc>>();
             if let Ok(dt) = dt_without_tz {
-                LiteralValue::DateTime(dt.naive_utc(), TimeUnit::Nanoseconds)
+                LiteralValue::DateTime(dt.naive_utc().timestamp(), TimeUnit::Nanoseconds, None)
             } else {
                 panic!("Could not parse datetime: {}", value);
             }
@@ -72,7 +71,7 @@ pub(crate) fn sparql_literal_to_polars_literal_value(lit: &Literal) -> LiteralVa
         let date = NaiveDate::from_ymd_opt(y, m, d).unwrap();
         let dt = date.and_hms_opt(0,0,0).unwrap();
 
-        LiteralValue::DateTime(dt, TimeUnit::Milliseconds)
+        LiteralValue::DateTime(dt.timestamp(), TimeUnit::Milliseconds, None)
     }
     else if datatype == xsd::DECIMAL {
         let d = f64::from_str(value).expect("Decimal parsing error");
@@ -201,7 +200,7 @@ fn polars_literal_values_to_series(literal_values: Vec<LiteralValue>, name: &str
             LiteralValue::Range { .. } => {
                 todo!()
             }
-            LiteralValue::DateTime(_, t) =>
+            LiteralValue::DateTime(_, t, None) =>
             //TODO: Assert time unit lik??
             {
                 let s = Series::new(
@@ -209,14 +208,14 @@ fn polars_literal_values_to_series(literal_values: Vec<LiteralValue>, name: &str
                     literal_values
                         .into_iter()
                         .map(|x| {
-                            if let LiteralValue::DateTime(n, t_prime) = x {
+                            if let LiteralValue::DateTime(n, t_prime, None) = x {
                                 assert_eq!(t, &t_prime);
                                 n
                             } else {
                                 panic!("Not possible")
                             }
                         })
-                        .collect::<Vec<NaiveDateTime>>(),
+                        .collect::<Vec<i64>>(),
                 );
                 s
             }
@@ -339,7 +338,7 @@ fn polars_literal_values_to_series(literal_values: Vec<LiteralValue>, name: &str
             LiteralValue::Range { .. } => {
                 todo!()
             }
-            LiteralValue::DateTime(_, t) =>
+            LiteralValue::DateTime(_, t, None) =>
             //TODO: Assert time unit lik??
             {
                 Series::new(
@@ -347,14 +346,14 @@ fn polars_literal_values_to_series(literal_values: Vec<LiteralValue>, name: &str
                     literal_values
                         .into_iter()
                         .map(|x| {
-                            if let LiteralValue::DateTime(n, t_prime) = x {
+                            if let LiteralValue::DateTime(n, t_prime, None) = x {
                                 assert_eq!(t, &t_prime);
                                 Some(n)
                             } else {
                                 None
                             }
                         })
-                        .collect::<Vec<Option<NaiveDateTime>>>(),
+                        .collect::<Vec<Option<i64>>>(),
                 )
             }
             LiteralValue::Duration(_, _) => {

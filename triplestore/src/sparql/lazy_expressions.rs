@@ -7,7 +7,7 @@ use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
 use polars::functions::concat_str;
 use polars::lazy::dsl::is_not_null;
-use polars::prelude::{col, Expr, LiteralValue, Operator, Series, UniqueKeepStrategy, IntoLazy, IntoSeries};
+use polars::prelude::{col, Expr, LiteralValue, Operator, Series, UniqueKeepStrategy, IntoLazy, IntoSeries, lit};
 use spargebra::algebra::{Expression, Function};
 use representation::RDFNodeType;
 use crate::sparql::errors::SparqlError;
@@ -746,7 +746,7 @@ impl Triplestore {
                             if let Expression::Literal(l) = args.get(1).unwrap() {
                                 output_solution_mappings.mappings =
                                 output_solution_mappings.mappings.with_column(
-                                    col(&first_context.as_str()).str().contains(l.value())
+                                    col(&first_context.as_str()).str().contains(lit(l.value()), false)
                                         .alias(context.as_str()),
                                 );
                                 output_solution_mappings.rdf_node_types.insert(context.as_str().to_string(), RDFNodeType::Literal(xsd::STRING.into_owned()));

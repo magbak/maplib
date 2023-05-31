@@ -62,6 +62,7 @@ pub fn read_parquet(file_path: &String) -> Result<LazyFrame, ParquetIOError> {
             rechunk: true,
             row_count: None,
             low_memory: false,
+            ..Default::default()
         },
     )
     .map_err(|x| ParquetIOError::ReadParquetError(x))
