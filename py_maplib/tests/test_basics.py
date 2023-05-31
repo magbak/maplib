@@ -1,5 +1,5 @@
 import polars as pl
-from maplib import Mapping, to_graph
+from maplib import Mapping
 
 def test_create_mapping_from_polars_df():
     doc = """
@@ -20,5 +20,3 @@ def test_create_mapping_from_polars_df():
         '<http://example.net/ns#myObject> <http://example.net/ns#hasValue> "2"^^<http://www.w3.org/2001/XMLSchema#long>']
     expected_triples_strs.sort()
     assert actual_triples_strs == expected_triples_strs
-
-    print([t for t in to_graph(mapping)])
