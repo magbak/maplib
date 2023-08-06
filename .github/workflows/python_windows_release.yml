@@ -48,8 +48,8 @@ jobs:
       run: |
         rustup self update
         rustup set profile minimal
-        rustup toolchain install nightly-2023-01-01
-        rustup default nightly-2023-01-01
+        rustup toolchain install nightly-2023-08-01
+        rustup default nightly-2023-08-01
 
     - name: Build wheels
       run: |
