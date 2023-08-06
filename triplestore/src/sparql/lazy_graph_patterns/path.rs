@@ -7,10 +7,10 @@ use crate::sparql::sparql_to_polars::{
     sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
 use oxrdf::NamedNode;
-use polars::prelude::{col, concat, Expr, IntoLazy, DataFrameJoinOps};
+use polars::prelude::{col, concat, Expr, IntoLazy, DataFrameJoinOps, UnionArgs};
 use polars_core::datatypes::{AnyValue, DataType};
 use polars_core::frame::{DataFrame, UniqueKeepStrategy};
-use polars_core::prelude::{ChunkAgg, JoinType};
+use polars_core::prelude::{ChunkAgg, JoinArgs, JoinType};
 use polars_core::series::{IntoSeries, Series};
 use polars_core::utils::concat_df;
 use spargebra::algebra::PropertyPathExpression;
@@ -89,13 +89,12 @@ impl Triplestore {
                     &lookup_df,
                     &["subject_key"],
                     &["key"],
-                    JoinType::Inner,
-                    None,
+                    JoinArgs::new(JoinType::Inner),
                 )
                 .unwrap();
             lookup_df.rename("subject", "object").unwrap();
             out_df = out_df
-                .join(&lookup_df, &["object_key"], &["key"], JoinType::Inner, None)
+                .join(&lookup_df, &["object_key"], &["key"], JoinArgs::new(JoinType::Inner))
                 .unwrap();
             out_df = out_df.select(["subject", "object"]).unwrap();
         } else {
@@ -139,7 +138,7 @@ impl Triplestore {
                     out_df.lazy(),
                     join_on.as_slice(),
                     join_on.as_slice(),
-                    JoinType::Cross,
+                    JoinArgs::new(JoinType::Cross),
                 );
             } else {
                 let join_col_exprs: Vec<Expr> = join_cols.iter().map(|x| col(x)).collect();
@@ -148,17 +147,19 @@ impl Triplestore {
                     join_col_exprs.as_slice(),
                     all_false.as_slice(),
                     false,
+                    false
                 );
                 mappings.mappings = mappings.mappings.sort_by_exprs(
                     join_col_exprs.as_slice(),
                     all_false.as_slice(),
                     false,
+                    false
                 );
                 mappings.mappings = mappings.mappings.join(
                     lf,
                     join_on.as_slice(),
                     join_on.as_slice(),
-                    JoinType::Inner,
+                    JoinArgs::new(JoinType::Inner),
                 );
             }
             //Update mapping columns
@@ -289,8 +290,7 @@ impl Triplestore {
                 let mut lf = concat(
                     tt.get_lazy_frames()
                         .map_err(|x| SparqlError::TripleTableReadError(x))?,
-                    true,
-                    true,
+                    UnionArgs::default()
                 )
                 .unwrap()
                 .select([col("subject"), col("object")]);
@@ -395,10 +395,10 @@ fn df_path(
             } = df_path(left, cat_df_map, max_index);
             df_left.rename("object", "on").unwrap();
             df_right.rename("subject", "on").unwrap();
-            df_left = df_left.sort(vec!["on"], vec![false]).unwrap();
-            df_right = df_right.sort(vec!["on"], vec![false]).unwrap();
+            df_left = df_left.sort(vec!["on"], vec![false], false).unwrap();
+            df_right = df_right.sort(vec!["on"], vec![false], false).unwrap();
             let df = df_left
-                .join(&df_right, ["on"], ["on"], JoinType::Inner, None)
+                .join(&df_right, ["on"], ["on"], JoinArgs::new(JoinType::Inner))
                 .unwrap();
             DFPathReturn {
                 df,
@@ -520,7 +520,7 @@ fn to_csr(df: &DataFrame, max_index: usize) -> SparseMatrix {
         .into_series();
     let df = DataFrame::new(vec![sub, obj]).unwrap();
     let df = df
-        .sort(vec!["subject", "object"], vec![false, false])
+        .sort(vec!["subject", "object"], vec![false, false], false)
         .unwrap();
     let subject = df.column("subject").unwrap();
     let object = df.column("object").unwrap();

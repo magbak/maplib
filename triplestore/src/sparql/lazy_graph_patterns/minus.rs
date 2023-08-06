@@ -3,7 +3,7 @@ use log::debug;
 use polars::prelude::{col, Expr};
 use polars_core::datatypes::DataType;
 use spargebra::algebra::GraphPattern;
-use polars_core::prelude::JoinType;
+use polars_core::prelude::{JoinArgs, JoinType};
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::{is_string_col, SolutionMappings};
@@ -52,13 +52,14 @@ impl Triplestore {
                 }
             }
             let all_false = [false].repeat(join_on_cols.len());
-            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false);
+            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false, false);
             left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
                 join_on_cols.as_slice(),
                 all_false.as_slice(),
                 false,
+                false
             );
-            left_solution_mappings.mappings = left_solution_mappings.mappings.join(right_mappings, join_on_cols.as_slice(), join_on_cols.as_slice(), JoinType::Anti);
+            left_solution_mappings.mappings = left_solution_mappings.mappings.join(right_mappings, join_on_cols.as_slice(), join_on_cols.as_slice(), JoinArgs::new(JoinType::Anti));
             Ok(left_solution_mappings)
         }
     }

@@ -3,7 +3,7 @@ use oxrdf::{Variable};
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::datatypes::AnyValue;
 use polars_core::frame::DataFrame;
-use polars_core::prelude::JoinType;
+use polars_core::prelude::{JoinArgs, JoinType};
 use polars_core::series::Series;
 use spargebra::term::GroundTerm;
 use representation::literals::sparql_literal_to_any_value;
@@ -83,9 +83,9 @@ impl Triplestore {
                 mappings.rdf_node_types.insert(var.as_str().to_string(), v);
             }
             if join_on.is_empty() {
-                mappings.mappings = mappings.mappings.join(df.lazy(), join_cols.as_slice(), join_cols.as_slice(), JoinType::Cross);
+                mappings.mappings = mappings.mappings.join(df.lazy(), join_cols.as_slice(), join_cols.as_slice(), JoinArgs::new(JoinType::Cross));
             } else {
-                mappings.mappings = mappings.mappings.join(df.lazy(), join_cols.as_slice(), join_cols.as_slice(), JoinType::Inner);
+                mappings.mappings = mappings.mappings.join(df.lazy(), join_cols.as_slice(), join_cols.as_slice(), JoinArgs::new(JoinType::Inner));
             }
             Ok(mappings)
         } else {

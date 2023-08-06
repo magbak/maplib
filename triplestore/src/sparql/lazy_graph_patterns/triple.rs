@@ -7,11 +7,11 @@ use crate::sparql::sparql_to_polars::{
     sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
 use log::warn;
-use polars::prelude::IntoLazy;
+use polars::prelude::{IntoLazy, UnionArgs};
 use polars::prelude::{col, concat, lit, Expr};
 use polars_core::datatypes::DataType;
 use polars_core::frame::DataFrame;
-use polars_core::prelude::JoinType;
+use polars_core::prelude::{JoinArgs, JoinType};
 use polars_core::series::Series;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 use std::collections::{HashMap, HashSet};
@@ -38,8 +38,7 @@ impl Triplestore {
                         let mut lf = concat(
                             tt.get_lazy_frames()
                                 .map_err(|x| SparqlError::TripleTableReadError(x))?,
-                            true,
-                            true,
+                            UnionArgs::default()
                         )
                         .unwrap()
                         .select([col("subject"), col("object")]);
@@ -98,6 +97,7 @@ impl Triplestore {
                                     str_cols.push(bn.as_str().to_string())
                                 }
                             }
+                            _ => {}
                         }
                         if let Some(mut mappings) = solution_mappings {
                             let join_cols: Vec<String> = var_cols
@@ -122,7 +122,7 @@ impl Triplestore {
                                     lf,
                                     join_on.as_slice(),
                                     join_on.as_slice(),
-                                    JoinType::Cross,
+                                    JoinArgs::new(JoinType::Cross),
                                 );
                             } else {
                                 let join_col_exprs: Vec<Expr> =
@@ -142,7 +142,7 @@ impl Triplestore {
                                     lf,
                                     join_on.as_slice(),
                                     join_on.as_slice(),
-                                    JoinType::Inner,
+                                    JoinArgs::new(JoinType::Inner),
                                 );
                             }
                             //Update mapping columns
@@ -213,7 +213,7 @@ impl Triplestore {
                             out_lf,
                             join_on.as_slice(),
                             join_on.as_slice(),
-                            JoinType::Cross,
+                            JoinArgs::new(JoinType::Cross),
                         );
                         for (k, v) in out_datatypes {
                             if !datatypes.contains_key(&k) {

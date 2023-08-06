@@ -3,7 +3,7 @@ use polars::prelude::{col, Expr};
 use spargebra::algebra::{Expression, GraphPattern};
 use log::debug;
 use polars_core::datatypes::DataType;
-use polars_core::prelude::JoinType;
+use polars_core::prelude::{JoinArgs, JoinType};
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::{is_string_col, SolutionMappings};
@@ -58,7 +58,7 @@ impl Triplestore {
         let join_on_cols:Vec<Expr> = join_on.iter().map(|x|col(x)).collect();
 
         if join_on.is_empty() {
-            left_solution_mappings.mappings = left_solution_mappings.mappings.join(right_mappings, join_on_cols.as_slice(), join_on_cols.as_slice(), JoinType::Cross)
+            left_solution_mappings.mappings = left_solution_mappings.mappings.join(right_mappings, join_on_cols.as_slice(), join_on_cols.as_slice(), JoinArgs::new(JoinType::Cross))
         } else {
             for c in join_on {
                 if is_string_col(right_datatypes.get(c).unwrap()) {
@@ -67,13 +67,14 @@ impl Triplestore {
                 }
             }
             let all_false = [false].repeat(join_on_cols.len());
-            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false);
+            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false, false);
             left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
                 join_on_cols.as_slice(),
                 all_false.as_slice(),
                 false,
+                false
             );
-            left_solution_mappings.mappings = left_solution_mappings.mappings.join(right_mappings, join_on_cols.as_slice(), join_on_cols.as_slice(), JoinType::Left)
+            left_solution_mappings.mappings = left_solution_mappings.mappings.join(right_mappings, join_on_cols.as_slice(), join_on_cols.as_slice(), JoinArgs::new(JoinType::Left))
         }
         for c in right_columns.drain() {
            left_solution_mappings.columns.insert(c);

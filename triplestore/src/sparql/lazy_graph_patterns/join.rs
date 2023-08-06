@@ -5,7 +5,7 @@ use crate::sparql::solution_mapping::{is_string_col, SolutionMappings};
 use log::debug;
 use polars::prelude::{col, Expr};
 use polars_core::datatypes::DataType;
-use polars_core::prelude::JoinType;
+use polars_core::prelude::{JoinArgs, JoinType};
 use spargebra::algebra::GraphPattern;
 
 impl Triplestore {
@@ -40,7 +40,7 @@ impl Triplestore {
                 right_mappings,
                 join_on_cols.as_slice(),
                 join_on_cols.as_slice(),
-                JoinType::Cross,
+                JoinArgs::new(JoinType::Cross),
             )
         } else {
             for c in join_on {
@@ -51,17 +51,18 @@ impl Triplestore {
             }
             let all_false = [false].repeat(join_on_cols.len());
 
-            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false);
+            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false, false);
             left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
                 join_on_cols.as_slice(),
                 all_false.as_slice(),
+                false,
                 false,
             );
             left_solution_mappings.mappings = left_solution_mappings.mappings.join(
                 right_mappings,
                 join_on_cols.as_slice(),
                 join_on_cols.as_slice(),
-                JoinType::Inner,
+                JoinArgs::new(JoinType::Inner),
             )
         }
         for c in right_columns.drain() {

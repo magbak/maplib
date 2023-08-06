@@ -13,7 +13,7 @@ triplestore = {path="../triplestore"}
 oxrdf = "0.1.0"
 arrow_python_utils = {path="../arrow_python_utils"}
 thiserror="1.0.31"
-polars-core = {version="0.30.0"}
+polars-core = {version="0.31.1"}
 
 [lib]
 name = "maplib"

@@ -51,6 +51,7 @@ impl Triplestore {
                 .collect::<Vec<Expr>>(),
             asc_ordering.iter().map(|asc| !asc).collect::<Vec<bool>>(),
             true,
+            false
         );
         mappings = mappings.drop_columns(
             inner_contexts

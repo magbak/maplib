@@ -11,7 +11,7 @@ use representation::RDFNodeType;
 use parquet_io::{ParquetIOError, property_to_filename, read_parquet, split_write_tmp_df, write_parquet};
 use log::debug;
 use oxrdf::vocab::xsd;
-use polars::prelude::{concat, IntoLazy, LazyFrame};
+use polars::prelude::{concat, IntoLazy, LazyFrame, UnionArgs};
 use polars_core::datatypes::AnyValue;
 use polars_core::frame::{DataFrame, UniqueKeepStrategy};
 use polars_core::prelude::DataType;
@@ -126,7 +126,7 @@ impl Triplestore {
                         for lf_res in lf_results {
                             lfs.push(lf_res.map_err(|x|TriplestoreError::ParquetIOError(x))?);
                         }
-                        let unique_df = concat(lfs, true, true).unwrap().unique(None, UniqueKeepStrategy::First).collect().unwrap();
+                        let unique_df = concat(lfs, UnionArgs::default()).unwrap().unique(None, UniqueKeepStrategy::First).collect().unwrap();
                         //TODO: Implement trick with len to avoid IO
                         let removed:Vec<Result<(), io::Error>> = v.df_paths.as_ref().unwrap().par_iter().map(|x| remove_file(Path::new(x))).collect();
                         for r in removed {
@@ -137,7 +137,7 @@ impl Triplestore {
                         v.unique = true;
                     } else {
                         let drained: Vec<LazyFrame> = v.dfs.as_mut().unwrap().drain(..).map(|x| x.lazy()).collect();
-                        let mut lf = concat(drained.as_slice(), true, true).unwrap();
+                        let mut lf = concat(drained.as_slice(), UnionArgs::default()).unwrap();
                         lf = lf.unique(None, UniqueKeepStrategy::First);
                         v.dfs.as_mut().unwrap().push(lf.collect().unwrap());
                         v.unique = true;
@@ -322,7 +322,7 @@ pub fn prepare_triples(
             out_df_vec.push(tdf);
         }
     } else {
-        let partitions = df.partition_by(["verb"]).unwrap();
+        let partitions = df.partition_by(["verb"], true).unwrap();
         for mut part in partitions {
             let predicate;
             {
