@@ -1,4 +1,4 @@
-name: Release tag on windows
+name: Release tag on mac
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 jobs:
   create_release: #From: https://jon.sprig.gs/blog/post/2442
     name: Create release
-    runs-on: ubuntu-latest
+    runs-on: macos-12
     steps:
       - name: Create Release
         id: create_release
@@ -25,11 +25,11 @@ jobs:
 
   build_release:
     name: Build release
-    runs-on: windows-latest
+    runs-on: macos-12
     needs: create_release
     strategy:
           matrix:
-            python-version: ['3.8', '3.9', '3.10', '3.11']
+            python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v2
@@ -38,22 +38,20 @@ jobs:
 
     - name: Create venv
       run: |
-        python -m venv venv
-        venv/Scripts/activate
-        python -m pip install --upgrade pip
-        python -m pip install maturin
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install --upgrade pip
+        pip install maturin
       working-directory: .
 
     - name: Set up nightly rust
       run: |
-        rustup self update
-        rustup set profile minimal
         rustup toolchain install nightly-2023-08-01
         rustup default nightly-2023-08-01
 
-    - name: Build wheels
+    - name: Build mapper wheels
       run: |
-        ../venv/Scripts/activate
+        source ../.venv/bin/activate
         maturin build
       working-directory: ./py_maplib
 
