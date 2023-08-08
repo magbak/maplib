@@ -1,13 +1,16 @@
-use std::str::FromStr;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use oxrdf::{NamedNode};
 use oxrdf::vocab::xsd;
+use oxrdf::NamedNode;
 use polars_core::datatypes::TimeUnit;
 use polars_core::prelude::AnyValue;
+use std::str::FromStr;
 
 //This code is copied from Chrontext, which has identical licensing
-pub fn sparql_literal_to_any_value(value: &String, datatype: &Option<NamedNode>) -> (AnyValue<'static>, NamedNode) {
-    let (anyv, dt ) = if let Some(nn) = datatype {
+pub fn sparql_literal_to_any_value(
+    value: &String,
+    datatype: &Option<NamedNode>,
+) -> (AnyValue<'static>, NamedNode) {
+    let (anyv, dt) = if let Some(nn) = datatype {
         let datatype = nn.as_ref();
         let literal_value = if datatype == xsd::STRING {
             AnyValue::Utf8Owned(value.into())
@@ -42,7 +45,11 @@ pub fn sparql_literal_to_any_value(value: &String, datatype: &Option<NamedNode>)
             } else {
                 let dt_without_tz = value.parse::<DateTime<Utc>>();
                 if let Ok(dt) = dt_without_tz {
-                    AnyValue::Datetime(dt.naive_utc().timestamp_nanos(), TimeUnit::Nanoseconds, &None)
+                    AnyValue::Datetime(
+                        dt.naive_utc().timestamp_nanos(),
+                        TimeUnit::Nanoseconds,
+                        &None,
+                    )
                 } else {
                     panic!("Could not parse datetime: {}", value);
                 }
@@ -57,5 +64,5 @@ pub fn sparql_literal_to_any_value(value: &String, datatype: &Option<NamedNode>)
     } else {
         (AnyValue::Utf8Owned(value.into()), xsd::STRING.into_owned())
     };
-    return (anyv.into_static().unwrap(), dt)
+    return (anyv.into_static().unwrap(), dt);
 }

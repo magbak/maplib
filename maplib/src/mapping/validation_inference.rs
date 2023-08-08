@@ -4,11 +4,11 @@ use crate::mapping::errors::MappingError;
 use crate::mapping::{ExpandOptions, PrimitiveColumn, RDFNodeType};
 use oxrdf::vocab::xsd;
 use oxrdf::NamedNode;
+use polars_core::datatypes::BooleanChunked;
 use polars_core::export::rayon::prelude::ParallelIterator;
 use polars_core::frame::DataFrame;
-use polars_core::prelude::{DataType};
+use polars_core::prelude::DataType;
 use std::collections::{HashMap, HashSet};
-use polars_core::datatypes::BooleanChunked;
 
 impl Mapping {
     pub fn validate_infer_dataframe_columns(
@@ -36,13 +36,10 @@ impl Mapping {
                     df,
                     &parameter,
                     variable_name,
-                    &options.language_tags
+                    &options.language_tags,
                 )?;
 
-                map.insert(
-                    variable_name.to_string(),
-                    column_data_type,
-                );
+                map.insert(variable_name.to_string(), column_data_type);
             } else {
                 return Err(MappingError::MissingParameterColumn(
                     variable_name.to_string(),
@@ -62,7 +59,7 @@ fn validate_infer_column_data_type(
     dataframe: &DataFrame,
     parameter: &Parameter,
     column_name: &str,
-    language_tag_map: &Option<HashMap<String,String>>,
+    language_tag_map: &Option<HashMap<String, String>>,
 ) -> Result<PrimitiveColumn, MappingError> {
     let series = dataframe.column(column_name).unwrap();
     let dtype = series.dtype();
@@ -83,7 +80,10 @@ fn validate_infer_column_data_type(
     } else {
         None
     };
-    Ok(PrimitiveColumn { rdf_node_type, language_tag })
+    Ok(PrimitiveColumn {
+        rdf_node_type,
+        language_tag,
+    })
 }
 
 fn infer_rdf_node_type(ptype: &PType) -> RDFNodeType {
@@ -100,7 +100,6 @@ fn infer_rdf_node_type(ptype: &PType) -> RDFNodeType {
         PType::NEListType(l) => infer_rdf_node_type(l),
     }
 }
-
 
 fn validate_non_optional_parameter(df: &DataFrame, column_name: &str) -> Result<(), MappingError> {
     if df.column(column_name).unwrap().is_null().any() {
@@ -151,7 +150,7 @@ fn validate_datatype(
     };
     let validate_if_series_list = |inner| {
         if let DataType::List(dt) = datatype {
-            validate_datatype(column_name,dt,  inner)
+            validate_datatype(column_name, dt, inner)
         } else {
             mismatch_error()
         }
@@ -161,9 +160,7 @@ fn validate_datatype(
             if let DataType::List(_) = datatype {
                 mismatch_error()
             } else {
-                Ok(validate_basic_datatype(column_name,
-                    datatype, bt
-                )?)
+                Ok(validate_basic_datatype(column_name, datatype, bt)?)
             }
         }
         PType::LUBType(inner) => validate_if_series_list(inner),
@@ -172,7 +169,11 @@ fn validate_datatype(
     }
 }
 
-fn validate_basic_datatype(column_name:&str, datatype: &DataType, rdf_datatype: &NamedNode) -> Result<(), MappingError> {
+fn validate_basic_datatype(
+    column_name: &str,
+    datatype: &DataType,
+    rdf_datatype: &NamedNode,
+) -> Result<(), MappingError> {
     // match rdf_datatype.as_ref() {
     //     xsd::INT => {
     //         Ok(());
@@ -181,7 +182,6 @@ fn validate_basic_datatype(column_name:&str, datatype: &DataType, rdf_datatype: 
     // }
     Ok(())
 }
-
 
 pub fn polars_datatype_to_xsd_datatype(datatype: &DataType) -> PType {
     let xsd_nn_ref = match datatype {

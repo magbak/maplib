@@ -1,6 +1,5 @@
 import logging
-
-from .maplib import Mapping
+from ._maplib import Mapping
 try:
     from rdflib import Graph, URIRef, Literal, BNode
 except ImportError:

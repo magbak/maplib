@@ -1,10 +1,10 @@
 use super::Triplestore;
-use polars::prelude::{col, Expr};
-use spargebra::algebra::{GraphPattern, OrderExpression};
-use log::debug;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::SolutionMappings;
+use log::debug;
+use polars::prelude::{col, Expr};
+use spargebra::algebra::{GraphPattern, OrderExpression};
 
 impl Triplestore {
     pub(crate) fn lazy_order_by(
@@ -15,25 +15,22 @@ impl Triplestore {
         context: &Context,
     ) -> Result<SolutionMappings, SparqlError> {
         debug!("Processing order by graph pattern");
-        let mut output_solution_mappings = self
-            .lazy_graph_pattern(
-                inner,
-                solution_mappings,
-                &context.extension_with(PathEntry::OrderByInner),
-            )
-            ?;
+        let mut output_solution_mappings = self.lazy_graph_pattern(
+            inner,
+            solution_mappings,
+            &context.extension_with(PathEntry::OrderByInner),
+        )?;
         let order_expression_contexts: Vec<Context> = (0..expression.len())
             .map(|i| context.extension_with(PathEntry::OrderByExpression(i as u16)))
             .collect();
         let mut asc_ordering = vec![];
         let mut inner_contexts = vec![];
         for i in 0..expression.len() {
-            let (ordering_solution_mappings, reverse, inner_context) = self
-                .lazy_order_expression(
-                    expression.get(i).unwrap(),
-                    output_solution_mappings,
-                    order_expression_contexts.get(i).unwrap(),
-                )?;
+            let (ordering_solution_mappings, reverse, inner_context) = self.lazy_order_expression(
+                expression.get(i).unwrap(),
+                output_solution_mappings,
+                order_expression_contexts.get(i).unwrap(),
+            )?;
             output_solution_mappings = ordering_solution_mappings;
             inner_contexts.push(inner_context);
             asc_ordering.push(reverse);
@@ -51,7 +48,7 @@ impl Triplestore {
                 .collect::<Vec<Expr>>(),
             asc_ordering.iter().map(|asc| !asc).collect::<Vec<bool>>(),
             true,
-            false
+            false,
         );
         mappings = mappings.drop_columns(
             inner_contexts

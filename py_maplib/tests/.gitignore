@@ -2,3 +2,8 @@ imdb
 test_imdb.py
 documents
 test_benchmark.py
+testdata/gtfs
+test_opcua_mapping.py
+testdata/*.parquet
+bench200_000.nt
+tmp

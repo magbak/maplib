@@ -229,7 +229,13 @@ fn list_expand(l: &str) -> IResult<&str, &str> {
 }
 
 fn pattern_list(p: &str) -> IResult<&str, Vec<UnresolvedInstance>> {
-    let (p, (_, ilist,_,_, _)) = tuple((tag("{"), separated_list0(tag(","), instance), opt(tag(",")), multispace0, tag("}")))(p)?;
+    let (p, (_, ilist, _, _, _)) = tuple((
+        tag("{"),
+        separated_list0(tag(","), instance),
+        opt(tag(",")),
+        multispace0,
+        tag("}"),
+    ))(p)?;
     Ok((p, ilist))
 }
 
@@ -712,7 +718,11 @@ fn prefix_id(p: &str) -> IResult<&str, Prefix> {
 }
 
 fn iri(i: &str) -> IResult<&str, ResolvesToNamedNode> {
-    let (i, rtnn) = alt((iri_ref_as_resolves, prefixed_name_as_resolves, a_rdftype_as_resolves))(i)?;
+    let (i, rtnn) = alt((
+        iri_ref_as_resolves,
+        prefixed_name_as_resolves,
+        a_rdftype_as_resolves,
+    ))(i)?;
     Ok((i, rtnn))
 }
 
@@ -745,17 +755,14 @@ fn iri_ref(i: &str) -> IResult<&str, NamedNode> {
     Ok((i, nn))
 }
 
-fn a_rdftype_as_resolves(a:&str) -> IResult<&str, ResolvesToNamedNode> {
+fn a_rdftype_as_resolves(a: &str) -> IResult<&str, ResolvesToNamedNode> {
     let (a, nn) = a_rdftype(a)?;
     Ok((a, ResolvesToNamedNode::NamedNode(nn)))
 }
 
-fn a_rdftype(r:&str) -> IResult<&str, NamedNode> {
+fn a_rdftype(r: &str) -> IResult<&str, NamedNode> {
     let (r, _) = tag("a")(r)?;
-    Ok((
-        r,
-        rdf::TYPE.into_owned()
-        ))
+    Ok((r, rdf::TYPE.into_owned()))
 }
 
 fn pname_ns_as_prefixed_name(p: &str) -> IResult<&str, PrefixedName> {

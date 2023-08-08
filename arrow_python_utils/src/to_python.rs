@@ -69,7 +69,7 @@ pub(crate) fn to_py_rb(
 
     Ok(record.to_object(py))
 }
- fn to_py_df(
+fn to_py_df(
     rb: &ArrowChunk,
     names: &[&str],
     py: Python,
@@ -87,7 +87,7 @@ pub(crate) fn to_py_rb(
     Ok(df.to_object(py))
 }
 
-pub fn df_to_py_df(mut df:DataFrame, py: Python) -> PyResult<PyObject> {
+pub fn df_to_py_df(mut df: DataFrame, py: Python) -> PyResult<PyObject> {
     let names_vec: Vec<String> = df
         .get_column_names()
         .into_iter()
@@ -100,11 +100,11 @@ pub fn df_to_py_df(mut df:DataFrame, py: Python) -> PyResult<PyObject> {
     to_py_df(&chunk, names.as_slice(), py, pyarrow, polars)
 }
 
-pub fn df_vec_to_py_df_list(dfs:Vec<DataFrame>, py: Python) -> PyResult<&PyList> {
+pub fn df_vec_to_py_df_list(dfs: Vec<DataFrame>, py: Python) -> PyResult<&PyList> {
     let mut py_dfs = vec![];
     for df in dfs {
         py_dfs.push(df_to_py_df(df, py)?)
     }
 
-    Ok(PyList::new(py,py_dfs))
+    Ok(PyList::new(py, py_dfs))
 }

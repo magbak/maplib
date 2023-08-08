@@ -17,8 +17,8 @@ use crate::sparql::solution_mapping::SolutionMappings;
 use crate::TriplesToAdd;
 use polars::frame::DataFrame;
 use polars::prelude::{col, IntoLazy};
-use polars_core::prelude::{DataType, Series, UniqueKeepStrategy};
 use polars_core::enable_string_cache;
+use polars_core::prelude::{DataType, Series, UniqueKeepStrategy};
 use representation::literals::sparql_literal_to_any_value;
 use representation::RDFNodeType;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
@@ -126,9 +126,19 @@ fn triple_to_df(
     let (subj_ser, _) = term_pattern_series(df, rdf_node_types, &t.subject, "subject", len);
     let (verb_ser, _) = named_node_pattern_series(df, rdf_node_types, &t.predicate, "verb", len);
     let (obj_ser, dt) = term_pattern_series(df, rdf_node_types, &t.object, "object", len);
+    let mut unique_subset = vec![];
+    if subj_ser.dtype() != &DataType::Null {
+        unique_subset.push("subject".to_string());
+    }
+    if verb_ser.dtype() != &DataType::Null {
+        unique_subset.push("verb".to_string());
+    }
+    if obj_ser.dtype() != &DataType::Null {
+        unique_subset.push("object".to_string());
+    }
     let df = DataFrame::new(vec![subj_ser, verb_ser, obj_ser])
         .unwrap()
-        .unique(None, UniqueKeepStrategy::First, None)
+        .unique(Some(unique_subset.as_slice()), UniqueKeepStrategy::First, None)
         .unwrap();
     Ok((df, dt))
 }

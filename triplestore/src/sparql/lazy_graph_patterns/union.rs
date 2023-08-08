@@ -1,10 +1,10 @@
 use super::Triplestore;
-use polars::prelude::{diag_concat_lf};
-use spargebra::algebra::GraphPattern;
-use log::debug;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::SolutionMappings;
+use log::debug;
+use polars::prelude::diag_concat_lf;
+use spargebra::algebra::GraphPattern;
 
 impl Triplestore {
     pub(crate) fn lazy_union(
@@ -22,28 +22,16 @@ impl Triplestore {
             mappings: left_mappings,
             columns: mut left_columns,
             rdf_node_types: mut left_datatypes,
-        } = self
-            .lazy_graph_pattern(
-                &left,
-                solution_mappings.clone(),
-                &left_context,
-            )
-            ?;
+        } = self.lazy_graph_pattern(&left, solution_mappings.clone(), &left_context)?;
 
         let SolutionMappings {
             mappings: right_mappings,
             columns: right_columns,
             rdf_node_types: mut right_datatypes,
-        } = self
-            .lazy_graph_pattern(
-                right,
-                solution_mappings,
-                &right_context,
-            )
-            ?;
+        } = self.lazy_graph_pattern(right, solution_mappings, &right_context)?;
 
-        let output_mappings =
-            diag_concat_lf(vec![left_mappings, right_mappings], true, true).expect("Concat problem");
+        let output_mappings = diag_concat_lf(vec![left_mappings, right_mappings], true, true)
+            .expect("Concat problem");
         left_columns.extend(right_columns);
         for (v, dt) in right_datatypes.drain() {
             if let Some(left_dt) = left_datatypes.get(&v) {

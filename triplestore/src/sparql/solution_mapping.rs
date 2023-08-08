@@ -1,7 +1,7 @@
-use representation::RDFNodeType;
-use polars::prelude::LazyFrame;
-use std::collections::{HashMap, HashSet};
 use oxrdf::vocab::xsd;
+use polars::prelude::LazyFrame;
+use representation::RDFNodeType;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone)]
 pub struct SolutionMappings {
@@ -38,5 +38,5 @@ pub fn is_string_col(rdf_node_type: &RDFNodeType) -> bool {
             panic!("No support for datatype {:?}", rdf_node_type)
         }
     }
-    return false
+    return false;
 }

@@ -1,8 +1,8 @@
+use crate::ast::StottrVariable;
+use crate::resolver::ResolutionError;
 use std::fmt::{Display, Formatter};
 use std::io;
 use thiserror::Error;
-use crate::ast::StottrVariable;
-use crate::resolver::ResolutionError;
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
@@ -12,9 +12,8 @@ pub enum TemplateError {
     ResolveDirectoryEntryError(io::Error),
     ReadTemplateDirectoryError(io::Error),
     ParsingError(crate::parsing::errors::ParsingError),
-    ResolutionError(ResolutionError)
+    ResolutionError(ResolutionError),
 }
-
 
 impl Display for TemplateError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

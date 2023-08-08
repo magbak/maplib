@@ -1,3 +1,7 @@
+[tool.maturin]
+module-name = "maplib._maplib"
+python-source = "python"
+
 [project]
 name = "maplib"
 dependencies = ["polars==0.18.0", "pyarrow>=7.0.0"]

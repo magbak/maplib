@@ -46,6 +46,15 @@ def pizzas_mapping():
 
 
 def test_simple_query_no_error(pizzas_mapping):
+    print(pizzas_mapping.query("""
+    PREFIX pizza:<https://github.com/magbak/maplib/pizza#>
+    PREFIX ing:<https://github.com/magbak/maplib/pizza/ingredients#>
+    SELECT ?p 
+    WHERE {
+        #?p a pizza:Pizza .
+        ?p pizza:hasIngredient ing:Pineapple .
+    }"""))
+
     df = pizzas_mapping.query("""
     PREFIX pizza:<https://github.com/magbak/maplib/pizza#>
 

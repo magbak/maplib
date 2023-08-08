@@ -1,10 +1,10 @@
 use super::Triplestore;
 
 use crate::conversion::convert_to_string;
-use representation::{RDFNodeType, TripleType};
+use crate::errors::TriplestoreError;
 use oxrdf::{Literal, NamedNode, Subject, Term, Triple};
 use polars_core::prelude::AnyValue;
-use crate::errors::TriplestoreError;
+use representation::{RDFNodeType, TripleType};
 
 impl Triplestore {
     pub fn object_property_triples<F, T>(

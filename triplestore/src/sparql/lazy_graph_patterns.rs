@@ -6,11 +6,11 @@ mod join;
 mod left_join;
 mod minus;
 mod order_by;
+mod path;
 mod project;
+mod triple;
 mod union;
 mod values;
-mod triple;
-mod path;
 
 use super::Triplestore;
 use crate::sparql::errors::SparqlError;
@@ -37,13 +37,16 @@ impl Triplestore {
                         updated_solution_mappings,
                         tp,
                         &bgp_context,
-                    )?)
+                    )?);
+                    //println!("Out soln mapping {:?}", updated_solution_mappings.as_ref().unwrap().mappings.clone().collect());
                 }
                 Ok(updated_solution_mappings.unwrap())
-            },
-            GraphPattern::Path { subject, path, object } => {
-                self.lazy_path(subject, path, object, solution_mappings, context)
-            },
+            }
+            GraphPattern::Path {
+                subject,
+                path,
+                object,
+            } => self.lazy_path(subject, path, object, solution_mappings, context),
             GraphPattern::Join { left, right } => {
                 self.lazy_join(left, right, solution_mappings, context)
             }
@@ -84,10 +87,22 @@ impl Triplestore {
             }
             GraphPattern::Reduced { inner } => {
                 info!("Reduced has no practical effect in this implementation");
-                self.lazy_graph_pattern(inner, solution_mappings, &context.extension_with(PathEntry::ReducedInner))
+                self.lazy_graph_pattern(
+                    inner,
+                    solution_mappings,
+                    &context.extension_with(PathEntry::ReducedInner),
+                )
             }
-            GraphPattern::Slice { inner, start, length } => {
-                let mut newsols = self.lazy_graph_pattern(inner, solution_mappings, &context.extension_with(PathEntry::ReducedInner))?;
+            GraphPattern::Slice {
+                inner,
+                start,
+                length,
+            } => {
+                let mut newsols = self.lazy_graph_pattern(
+                    inner,
+                    solution_mappings,
+                    &context.extension_with(PathEntry::ReducedInner),
+                )?;
                 if let Some(length) = length {
                     newsols.mappings = newsols.mappings.slice(*start as i64, *length as u32);
                 } else {
@@ -100,7 +115,9 @@ impl Triplestore {
                 variables,
                 aggregates,
             } => self.lazy_group(inner, variables, aggregates, solution_mappings, context),
-            GraphPattern::Service { .. } => {unimplemented!("Services are not implemented")},
+            GraphPattern::Service { .. } => {
+                unimplemented!("Services are not implemented")
+            }
         }
     }
 }

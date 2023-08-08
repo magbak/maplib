@@ -6,13 +6,13 @@ use crate::ast::{
 };
 use crate::constants::OTTR_TRIPLE;
 use crate::document::document_from_file;
+use crate::templates::errors::TemplateError;
 use log::warn;
 use oxrdf::vocab::xsd;
 use oxrdf::NamedNode;
 use std::collections::{HashMap, HashSet};
 use std::fs::read_dir;
 use std::path::Path;
-use crate::templates::errors::TemplateError;
 
 #[derive(Clone, Debug)]
 pub struct TemplateDataset {
@@ -65,7 +65,10 @@ impl TemplateDataset {
         let ottr_triple_subject = Parameter {
             optional: false,
             non_blank: false,
-            ptype: Some(PType::BasicType(xsd::ANY_URI.into_owned(), "xsd:anyURI".to_string())),
+            ptype: Some(PType::BasicType(
+                xsd::ANY_URI.into_owned(),
+                "xsd:anyURI".to_string(),
+            )),
             stottr_variable: StottrVariable {
                 name: "subject".to_string(),
             },
@@ -74,7 +77,10 @@ impl TemplateDataset {
         let ottr_triple_verb = Parameter {
             optional: false,
             non_blank: false,
-            ptype: Some(PType::BasicType(xsd::ANY_URI.into_owned(), "xsd:anyURI".to_string())),
+            ptype: Some(PType::BasicType(
+                xsd::ANY_URI.into_owned(),
+                "xsd:anyURI".to_string(),
+            )),
             stottr_variable: StottrVariable {
                 name: "verb".to_string(),
             },
@@ -108,9 +114,10 @@ impl TemplateDataset {
 
     pub fn from_folder<P: AsRef<Path>>(path: P) -> Result<TemplateDataset, TemplateError> {
         let mut docs = vec![];
-        let files_result = read_dir(path).map_err(|e|TemplateError::ReadTemplateDirectoryError(e))?;
+        let files_result =
+            read_dir(path).map_err(|e| TemplateError::ReadTemplateDirectoryError(e))?;
         for f in files_result {
-            let f = f.map_err(|x|TemplateError::ResolveDirectoryEntryError(x))?;
+            let f = f.map_err(|x| TemplateError::ResolveDirectoryEntryError(x))?;
             if let Some(e) = f.path().extension() {
                 if let Some(s) = e.to_str() {
                     let extension = s.to_lowercase();
@@ -171,11 +178,11 @@ fn infer_template_types(
             .unwrap();
         if i.argument_list.len() != other.signature.parameter_list.len() {
             return Err(TemplateError::InconsistentNumberOfArguments(
-                    template.signature.template_name.as_str().to_string(),
-                    other.signature.template_name.as_str().to_string(),
-                    i.argument_list.len(),
-                    other.signature.parameter_list.len(),
-                ));
+                template.signature.template_name.as_str().to_string(),
+                other.signature.template_name.as_str().to_string(),
+                i.argument_list.len(),
+                other.signature.parameter_list.len(),
+            ));
         }
         for (argument, other_parameter) in i
             .argument_list
@@ -300,9 +307,9 @@ fn lub(
         }
     }
     Err(TemplateError::IncompatibleTypes(
-            template_name.as_str().to_string(),
-            variable.clone(),
-            left.to_string(),
-            right.to_string(),
-        ))
+        template_name.as_str().to_string(),
+        variable.clone(),
+        left.to_string(),
+        right.to_string(),
+    ))
 }

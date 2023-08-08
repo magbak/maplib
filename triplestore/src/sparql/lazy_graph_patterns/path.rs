@@ -1,5 +1,4 @@
 use super::Triplestore;
-use representation::RDFNodeType;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::Context;
 use crate::sparql::solution_mapping::SolutionMappings;
@@ -7,12 +6,13 @@ use crate::sparql::sparql_to_polars::{
     sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
 use oxrdf::NamedNode;
-use polars::prelude::{col, concat, Expr, IntoLazy, DataFrameJoinOps, UnionArgs};
+use polars::prelude::{col, concat, DataFrameJoinOps, Expr, IntoLazy, UnionArgs};
 use polars_core::datatypes::{AnyValue, DataType};
 use polars_core::frame::{DataFrame, UniqueKeepStrategy};
 use polars_core::prelude::{ChunkAgg, JoinArgs, JoinType};
 use polars_core::series::{IntoSeries, Series};
 use polars_core::utils::concat_df;
+use representation::RDFNodeType;
 use spargebra::algebra::PropertyPathExpression;
 use spargebra::term::TermPattern;
 use sprs::{CsMatBase, TriMatBase};
@@ -94,7 +94,12 @@ impl Triplestore {
                 .unwrap();
             lookup_df.rename("subject", "object").unwrap();
             out_df = out_df
-                .join(&lookup_df, &["object_key"], &["key"], JoinArgs::new(JoinType::Inner))
+                .join(
+                    &lookup_df,
+                    &["object_key"],
+                    &["key"],
+                    JoinArgs::new(JoinType::Inner),
+                )
                 .unwrap();
             out_df = out_df.select(["subject", "object"]).unwrap();
         } else {
@@ -118,7 +123,6 @@ impl Triplestore {
         }
 
         if let Some(mut mappings) = solution_mappings {
-
             let join_cols: Vec<String> = var_cols
                 .clone()
                 .into_iter()
@@ -147,13 +151,13 @@ impl Triplestore {
                     join_col_exprs.as_slice(),
                     all_false.as_slice(),
                     false,
-                    false
+                    false,
                 );
                 mappings.mappings = mappings.mappings.sort_by_exprs(
                     join_col_exprs.as_slice(),
                     all_false.as_slice(),
                     false,
-                    false
+                    false,
                 );
                 mappings.mappings = mappings.mappings.join(
                     lf,
@@ -290,7 +294,7 @@ impl Triplestore {
                 let mut lf = concat(
                     tt.get_lazy_frames()
                         .map_err(|x| SparqlError::TripleTableReadError(x))?,
-                    UnionArgs::default()
+                    UnionArgs::default(),
                 )
                 .unwrap()
                 .select([col("subject"), col("object")]);

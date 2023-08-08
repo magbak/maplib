@@ -1,6 +1,6 @@
 use crate::mapping::errors::MappingError;
-use thiserror::Error;
 use crate::templates::errors::TemplateError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum MaplibError {

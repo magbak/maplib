@@ -1,11 +1,11 @@
 use super::Triplestore;
-use representation::RDFNodeType;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::SolutionMappings;
 use oxrdf::vocab::xsd;
 use oxrdf::Variable;
 use polars::prelude::{col, DataType, Expr, GetOutput, IntoSeries};
+use representation::RDFNodeType;
 use spargebra::algebra::AggregateExpression;
 
 pub struct AggregateReturn {
@@ -91,7 +91,10 @@ impl Triplestore {
                     solution_mappings,
                     column_context.as_ref().unwrap(),
                 )?;
-                let expr_rdf_node_type = rdf_node_type_from_context(column_context.as_ref().unwrap(), &output_solution_mappings);
+                let expr_rdf_node_type = rdf_node_type_from_context(
+                    column_context.as_ref().unwrap(),
+                    &output_solution_mappings,
+                );
                 if expr_rdf_node_type.is_float() {
                     out_rdf_node_type = expr_rdf_node_type.clone();
                 } else {
@@ -113,7 +116,11 @@ impl Triplestore {
                     solution_mappings,
                     column_context.as_ref().unwrap(),
                 )?;
-                out_rdf_node_type = rdf_node_type_from_context(column_context.as_ref().unwrap(), &output_solution_mappings).clone();
+                out_rdf_node_type = rdf_node_type_from_context(
+                    column_context.as_ref().unwrap(),
+                    &output_solution_mappings,
+                )
+                .clone();
 
                 out_expr = col(column_context.as_ref().unwrap().as_str()).min();
             }
@@ -125,7 +132,11 @@ impl Triplestore {
                     solution_mappings,
                     column_context.as_ref().unwrap(),
                 )?;
-                out_rdf_node_type = rdf_node_type_from_context(column_context.as_ref().unwrap(), &output_solution_mappings).clone();
+                out_rdf_node_type = rdf_node_type_from_context(
+                    column_context.as_ref().unwrap(),
+                    &output_solution_mappings,
+                )
+                .clone();
 
                 out_expr = col(column_context.as_ref().unwrap().as_str()).max();
             }
@@ -150,20 +161,26 @@ impl Triplestore {
                 };
                 if *distinct {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8).list().0
+                        .cast(DataType::Utf8)
+                        .list()
+                        .0
                         .apply(
                             move |s| {
-                                Ok(Some(s.unique_stable()
-                                    .expect("Unique stable error")
-                                    .str_concat(use_sep.as_str())
-                                    .into_series()))
+                                Ok(Some(
+                                    s.unique_stable()
+                                        .expect("Unique stable error")
+                                        .str_concat(use_sep.as_str())
+                                        .into_series(),
+                                ))
                             },
                             GetOutput::from_type(DataType::Utf8),
                         )
                         .first();
                 } else {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8).list().0
+                        .cast(DataType::Utf8)
+                        .list()
+                        .0
                         .apply(
                             move |s| Ok(Some(s.str_concat(use_sep.as_str()).into_series())),
                             GetOutput::from_type(DataType::Utf8),
@@ -179,7 +196,11 @@ impl Triplestore {
                     solution_mappings,
                     column_context.as_ref().unwrap(),
                 )?;
-                out_rdf_node_type = rdf_node_type_from_context(column_context.as_ref().unwrap(), &output_solution_mappings).clone();
+                out_rdf_node_type = rdf_node_type_from_context(
+                    column_context.as_ref().unwrap(),
+                    &output_solution_mappings,
+                )
+                .clone();
 
                 out_expr = col(column_context.as_ref().unwrap().as_str()).first();
             }
@@ -196,7 +217,7 @@ impl Triplestore {
             solution_mappings: output_solution_mappings,
             expr: out_expr,
             context: column_context,
-            rdf_node_type:out_rdf_node_type,
+            rdf_node_type: out_rdf_node_type,
         })
     }
 }

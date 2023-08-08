@@ -129,7 +129,6 @@ fn resolve_signature(
     }
     let prefixed_name = get_name(&unresolved_signature.template_name);
 
-
     Ok(Signature {
         template_name: resolve(&unresolved_signature.template_name, prefix_map)?,
         template_prefixed_name: prefixed_name,
@@ -141,11 +140,9 @@ fn resolve_signature(
 fn get_name(resolves_to_name: &ResolvesToNamedNode) -> String {
     match &resolves_to_name {
         ResolvesToNamedNode::PrefixedName(pname) => {
-            format!("{}:{}", pname.prefix , pname.name)
+            format!("{}:{}", pname.prefix, pname.name)
         }
-        ResolvesToNamedNode::NamedNode(nn) => {
-            nn.to_string()
-        }
+        ResolvesToNamedNode::NamedNode(nn) => nn.to_string(),
     }
 }
 

@@ -7,6 +7,7 @@ use crate::utils::triples_from_file;
 use maplib::mapping::{ExpandOptions, Mapping};
 use oxrdf::{Literal, NamedNode, Subject, Term, Triple};
 use polars::frame::DataFrame;
+use polars::prelude::{col, IntoLazy};
 use polars::series::Series;
 use polars_core::prelude::{AnyValue, TimeUnit};
 use rstest::*;
@@ -14,7 +15,6 @@ use serial_test::serial;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::path::PathBuf;
-use polars::prelude::{col, IntoLazy};
 
 #[fixture]
 fn testdata_path() -> PathBuf {
@@ -631,9 +631,11 @@ ex:AnotherExampleTemplate [?object, ?predicate, ?myList] :: {
     my_list.rename("myList");
     let series = [object, predicate, my_list];
     let mut df = DataFrame::from_iter(series);
-    df = df.lazy()
+    df = df
+        .lazy()
         .groupby_stable([col("object"), col("predicate")])
-        .agg([col("myList").list().0]).collect()
+        .agg([col("myList").list().0])
+        .collect()
         .unwrap();
     //println!("{df}");
     let _report = mapping
@@ -711,9 +713,11 @@ ex:AnotherExampleTemplate [?subject, ?myList1, ?myList2] :: {
     my_list2.rename("myList2");
     let series = [subject, my_list1, my_list2];
     let mut df = DataFrame::from_iter(series);
-    df = df.lazy()
+    df = df
+        .lazy()
         .groupby_stable([col("subject")])
-        .agg([col("myList1").list().0, col("myList2").list().0]).collect()
+        .agg([col("myList1").list().0, col("myList2").list().0])
+        .collect()
         .unwrap();
 
     //println!("{df}");
@@ -827,7 +831,9 @@ fn test_default() {
             df,
             "subject".to_string(),
             vec![],
-            None, None, Default::default()
+            None,
+            None,
+            Default::default(),
         )
         .unwrap();
     let triples = mapping.export_oxrdf_triples().unwrap();
@@ -836,7 +842,9 @@ fn test_default() {
     let expected_triples_set = HashSet::from([
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myVar1"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myVar1",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "1",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -844,7 +852,9 @@ fn test_default() {
         },
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myVar1"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myVar1",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "2",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -852,7 +862,9 @@ fn test_default() {
         },
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myVar2"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myVar2",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "5",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -860,14 +872,19 @@ fn test_default() {
         },
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myVar2"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myVar2",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "6",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
             )),
-        },Triple {
+        },
+        Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj2")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myVar2"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myVar2",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "7",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -893,9 +910,14 @@ fn test_default_list() {
     my_list2.rename("myList2");
     let series = [subject, my_list1, my_list2];
     let mut df = DataFrame::from_iter(series);
-    df = df.lazy()
+    df = df
+        .lazy()
         .groupby_stable([col("subject")])
-        .agg([col("myList1").drop_nulls().list().0, col("myList2").list().0]).collect()
+        .agg([
+            col("myList1").drop_nulls().list().0,
+            col("myList2").list().0,
+        ])
+        .collect()
         .unwrap();
     //println!("{df}");
     let _report = mapping
@@ -903,7 +925,9 @@ fn test_default_list() {
             df,
             "subject".to_string(),
             vec![],
-            None, None, Default::default()
+            None,
+            None,
+            Default::default(),
         )
         .unwrap();
     let triples = mapping.export_oxrdf_triples().unwrap();
@@ -912,7 +936,9 @@ fn test_default_list() {
     let expected_triples_set = HashSet::from([
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myList1"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myList1",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "1",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -920,7 +946,9 @@ fn test_default_list() {
         },
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myList1"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myList1",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "2",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -928,7 +956,9 @@ fn test_default_list() {
         },
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myList2"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myList2",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "5",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
@@ -936,14 +966,19 @@ fn test_default_list() {
         },
         Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj1")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myList2"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myList2",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "6",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),
             )),
-        }, Triple {
+        },
+        Triple {
             subject: Subject::NamedNode(NamedNode::new_unchecked("http://example.net/ns#obj2")),
-            predicate: NamedNode::new_unchecked("https://github.com/magbak/maplib/Predicates#myList2"),
+            predicate: NamedNode::new_unchecked(
+                "https://github.com/magbak/maplib/Predicates#myList2",
+            ),
             object: Term::Literal(Literal::new_typed_literal(
                 "7",
                 NamedNode::new_unchecked("http://www.w3.org/2001/XMLSchema#int"),

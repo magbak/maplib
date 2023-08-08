@@ -1,10 +1,10 @@
 use crate::ast::{ConstantTerm, PType};
 use oxrdf::IriParseError;
+use polars_core::error::PolarsError;
 use polars_core::frame::DataFrame;
 use polars_core::prelude::{DataType, Series};
 use std::fmt::{Display, Formatter};
 use std::io;
-use polars_core::error::PolarsError;
 use thiserror::Error;
 use triplestore::errors::TriplestoreError;
 
@@ -31,7 +31,7 @@ pub enum MappingError {
     PathDoesNotExist(String),
     WriteNTriplesError(io::Error),
     RemoveParquetFileError(io::Error),
-    TriplestoreError(TriplestoreError)
+    TriplestoreError(TriplestoreError),
 }
 
 impl Display for MappingError {

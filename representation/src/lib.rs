@@ -1,7 +1,7 @@
 pub mod literals;
 
-use oxrdf::{NamedNode, NamedNodeRef};
 use oxrdf::vocab::xsd;
+use oxrdf::{NamedNode, NamedNodeRef};
 
 #[derive(PartialEq, Clone)]
 pub enum TripleType {

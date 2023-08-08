@@ -13,27 +13,26 @@ use crate::errors::MaplibError;
 use crate::mapping::constant_terms::constant_to_expr;
 use crate::mapping::errors::MappingError;
 use crate::templates::TemplateDataset;
-use triplestore::{TriplesToAdd, Triplestore};
 use log::debug;
-use oxrdf::{Triple};
+use oxrdf::Triple;
 use polars::lazy::prelude::{col, Expr};
 use polars::prelude::{DataFrame, IntoLazy};
 use polars_core::series::Series;
 use rayon::iter::ParallelDrainRange;
 use rayon::iter::ParallelIterator;
+use representation::RDFNodeType;
 use std::cmp::min;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::Path;
 use std::time::Instant;
+use triplestore::{TriplesToAdd, Triplestore};
 use uuid::Uuid;
-use representation::RDFNodeType;
 
 pub struct Mapping {
     template_dataset: TemplateDataset,
     pub triplestore: Triplestore,
-    use_caching: bool
-
+    use_caching: bool,
 }
 
 pub struct ExpandOptions {
@@ -73,15 +72,19 @@ pub struct PrimitiveColumn {
 pub struct MappingReport {}
 
 impl Mapping {
-    pub fn new(template_dataset: &TemplateDataset, caching_folder: Option<String>) -> Result<Mapping, MaplibError> {
+    pub fn new(
+        template_dataset: &TemplateDataset,
+        caching_folder: Option<String>,
+    ) -> Result<Mapping, MaplibError> {
         match env_logger::try_init() {
             _ => {}
         }
         let use_caching = caching_folder.is_some();
         Ok(Mapping {
             template_dataset: template_dataset.clone(),
-            triplestore: Triplestore::new(caching_folder).map_err(|x|MappingError::TriplestoreError(x))?,
-            use_caching
+            triplestore: Triplestore::new(caching_folder)
+                .map_err(|x| MappingError::TriplestoreError(x))?,
+            use_caching,
         })
     }
 
@@ -89,7 +92,8 @@ impl Mapping {
         path: P,
         caching_folder: Option<String>,
     ) -> Result<Mapping, MaplibError> {
-        let dataset = TemplateDataset::from_folder(path).map_err(|x|MaplibError::TemplateError(x))?;
+        let dataset =
+            TemplateDataset::from_folder(path).map_err(|x| MaplibError::TemplateError(x))?;
         Mapping::new(&dataset, caching_folder)
     }
 
@@ -97,13 +101,14 @@ impl Mapping {
         path: P,
         caching_folder: Option<String>,
     ) -> Result<Mapping, MaplibError> {
-        let dataset = TemplateDataset::from_file(path).map_err(|x|MaplibError::TemplateError(x))?;
+        let dataset =
+            TemplateDataset::from_file(path).map_err(|x| MaplibError::TemplateError(x))?;
         Mapping::new(&dataset, caching_folder)
     }
 
     pub fn from_str(s: &str, caching_folder: Option<String>) -> Result<Mapping, MaplibError> {
         let doc = document_from_str(s.into())?;
-        let dataset = TemplateDataset::new(vec![doc]).map_err(|x|MaplibError::TemplateError(x))?;
+        let dataset = TemplateDataset::new(vec![doc]).map_err(|x| MaplibError::TemplateError(x))?;
         Mapping::new(&dataset, caching_folder)
     }
 
@@ -116,7 +121,7 @@ impl Mapping {
             let doc = document_from_str(s.into())?;
             docs.push(doc);
         }
-        let dataset = TemplateDataset::new(docs).map_err(|x|MaplibError::TemplateError(x))?;
+        let dataset = TemplateDataset::new(docs).map_err(|x| MaplibError::TemplateError(x))?;
         Mapping::new(&dataset, caching_folder)
     }
 
@@ -129,11 +134,14 @@ impl Mapping {
 
     pub fn write_native_parquet(&mut self, path: &str) -> Result<(), MappingError> {
         self.triplestore
-            .write_native_parquet(Path::new(path)).map_err(|x|MappingError::TriplestoreError(x))
+            .write_native_parquet(Path::new(path))
+            .map_err(|x| MappingError::TriplestoreError(x))
     }
 
     pub fn export_oxrdf_triples(&mut self) -> Result<Vec<Triple>, MappingError> {
-        self.triplestore.export_oxrdf_triples().map_err(|x|MappingError::TriplestoreError(x))
+        self.triplestore
+            .export_oxrdf_triples()
+            .map_err(|x| MappingError::TriplestoreError(x))
     }
 
     fn resolve_template(&self, s: &str) -> Result<&Template, MappingError> {
@@ -234,45 +242,16 @@ impl Mapping {
                     has_unique_subset: !unique_subsets.is_empty(),
                 }])
             } else {
-                let mut series_map = HashMap::new();
-                for s in df.get_column_names() {
-                    series_map.insert(s.to_string(), df.column(s).unwrap().clone());
-                }
-
-                let number_of_series_map =
-                    get_number_per_series_map(&template.pattern_list, &dynamic_columns);
-                let mut series_keys: Vec<&String> = number_of_series_map.keys().collect();
-                series_keys.sort();
-
                 let now = Instant::now();
-                let mut repeated_series_names = vec![];
-                for k in &series_keys {
-                    repeated_series_names
-                        .extend([*k].repeat(*number_of_series_map.get(*k).unwrap() as usize))
-                }
-                let repeated_series_clones: Vec<(&String, Series)> = repeated_series_names
-                    .par_drain(..)
-                    .map(|x| (x, series_map.get(x).unwrap().clone()))
-                    .collect();
-                let mut cloned_series_map: HashMap<&String, Vec<Series>> =
-                    HashMap::from_iter(series_keys.into_iter().map(|x| (x, vec![])));
-                for (k, ser) in repeated_series_clones {
-                    cloned_series_map.get_mut(&k).unwrap().push(ser);
-                }
+
                 let mut expand_params_vec = vec![];
+                let colnames:HashSet<_> = df.get_column_names().iter().map(|x|x.to_string()).collect();
                 for i in &template.pattern_list {
                     let mut instance_series = vec![];
                     let vs = get_variable_names(i);
                     for v in vs {
-                        let mut found = false;
-                        if let Some(series_vec) = cloned_series_map.get_mut(v) {
-                            if let Some(series) = series_vec.pop() {
-                                instance_series.push(series);
-                                found = true;
-                            }
-                        }
-                        if !found {
-                            instance_series.push(series_map.remove(v).unwrap());
+                        if colnames.contains(v) {
+                            instance_series.push(df.column(v).unwrap().clone());
                         }
                     }
                     expand_params_vec.push((i, instance_series));
@@ -347,7 +326,8 @@ impl Mapping {
             });
         }
         self.triplestore
-            .add_triples_vec(all_triples_to_add, call_uuid).map_err(|x|MappingError::TriplestoreError(x))?;
+            .add_triples_vec(all_triples_to_add, call_uuid)
+            .map_err(|x| MappingError::TriplestoreError(x))?;
 
         debug!(
             "Result processing took {} seconds",
@@ -355,20 +335,6 @@ impl Mapping {
         );
         Ok(())
     }
-}
-
-fn get_number_per_series_map(
-    instances: &Vec<Instance>,
-    dynamic_columns: &HashMap<String, PrimitiveColumn>,
-) -> HashMap<String, u16> {
-    let mut out_map: HashMap<String, u16> =
-        dynamic_columns.keys().map(|k| (k.clone(), 0)).collect();
-    for i in instances {
-        for v in get_variable_names(i) {
-            *out_map.get_mut(v).unwrap() += 1;
-        }
-    }
-    out_map
 }
 
 fn get_variable_names(i: &Instance) -> Vec<&String> {

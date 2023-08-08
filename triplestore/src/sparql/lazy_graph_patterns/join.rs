@@ -45,13 +45,21 @@ impl Triplestore {
         } else {
             for c in join_on {
                 if is_string_col(right_datatypes.get(c).unwrap()) {
-                    right_mappings = right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
-                    left_solution_mappings.mappings = left_solution_mappings.mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    right_mappings =
+                        right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    left_solution_mappings.mappings = left_solution_mappings
+                        .mappings
+                        .with_column(col(c).cast(DataType::Categorical(None)));
                 }
             }
             let all_false = [false].repeat(join_on_cols.len());
 
-            right_mappings = right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false, false);
+            right_mappings = right_mappings.sort_by_exprs(
+                join_on_cols.as_slice(),
+                all_false.as_slice(),
+                false,
+                false,
+            );
             left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
                 join_on_cols.as_slice(),
                 all_false.as_slice(),

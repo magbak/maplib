@@ -1,8 +1,8 @@
-use spargebra::algebra::OrderExpression;
+use super::Triplestore;
 use crate::sparql::errors::SparqlError;
 use crate::sparql::query_context::{Context, PathEntry};
 use crate::sparql::solution_mapping::SolutionMappings;
-use super::Triplestore;
+use spargebra::algebra::OrderExpression;
 
 impl Triplestore {
     pub fn lazy_order_expression(

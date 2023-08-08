@@ -195,6 +195,7 @@ impl Mapping {
         })
     }
 
+    #[pyo3(text_signature = "(template, df, unique_subset, language_tags, caching_folder)")]
     pub fn expand(
         &mut self,
         template: &str,
@@ -223,6 +224,7 @@ impl Mapping {
         Ok(None)
     }
 
+    #[pyo3(text_signature = "(template, primary_key_column, foreign_key_column, template_prefix, predicate_uri_prefix, language_tags, caching_folder)")]
     pub fn expand_default(
         &mut self,
         df: &PyAny,
@@ -258,6 +260,7 @@ impl Mapping {
         return Ok(format!("{}", tmpl))
     }
 
+    #[pyo3(text_signature = "(query)")]
     pub fn query(&mut self, py: Python<'_>, query:String) -> PyResult<PyObject> {
         let res = self.inner.triplestore.query(&query).map_err(PyMaplibError::from)?;
         match res {
@@ -271,6 +274,7 @@ impl Mapping {
         }
     }
 
+    #[pyo3(text_signature = "(query)")]
     pub fn insert(&mut self, query:String) -> PyResult<()> {
         self.inner.triplestore.insert(&query).map_err(PyMaplibError::from)?;
         Ok(())
@@ -392,6 +396,7 @@ impl Mapping {
         Ok(triples)
     }
 
+    #[pyo3(text_signature = "(file_path)")]
     pub fn write_ntriples(&mut self, path:&str) -> PyResult<()> {
         let path_buf = PathBuf::from(path);
         let mut actual_file = File::create(path_buf.as_path()).map_err(|x| PyMaplibError::from(MappingError::FileCreateIOError(x)))?;
@@ -399,6 +404,7 @@ impl Mapping {
         Ok(())
     }
 
+    #[pyo3(text_signature = "(folder_path)")]
     pub fn write_native_parquet(&mut self, path:&str) -> PyResult<()> {
         self.inner.write_native_parquet(path).map_err(|x| PyMaplibError::MappingError(x))?;
         Ok(())
@@ -406,7 +412,7 @@ impl Mapping {
 }
 
 #[pymodule]
-fn maplib(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn _maplib(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<Mapping>()?;
 
     Ok(())

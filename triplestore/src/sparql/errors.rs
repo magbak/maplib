@@ -1,7 +1,7 @@
-use spargebra::ParseError;
-use thiserror::Error;
 use crate::errors::TriplestoreError;
 use representation::RDFNodeType;
+use spargebra::ParseError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SparqlError {
@@ -18,5 +18,5 @@ pub enum SparqlError {
     #[error("Read dataframe error {}", .0)]
     TripleTableReadError(TriplestoreError),
     #[error("Error storing triples {}", .0)]
-    StoreTriplesError(TriplestoreError)
+    StoreTriplesError(TriplestoreError),
 }

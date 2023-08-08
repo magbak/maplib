@@ -1,15 +1,18 @@
 use super::Mapping;
-use crate::ast::{Argument, ConstantLiteral, ConstantTerm, Instance, PType, Parameter, Signature, StottrTerm, StottrVariable, Template, ListExpanderType};
+use crate::ast::{
+    Argument, ConstantLiteral, ConstantTerm, Instance, ListExpanderType, PType, Parameter,
+    Signature, StottrTerm, StottrVariable, Template,
+};
 use crate::constants::{DEFAULT_PREDICATE_URI_PREFIX, DEFAULT_TEMPLATE_PREFIX, OTTR_TRIPLE};
 use crate::mapping::errors::MappingError;
+use crate::mapping::ExpandOptions;
 use log::warn;
 use oxrdf::vocab::xsd;
-use oxrdf::{NamedNode};
+use oxrdf::NamedNode;
 use polars::prelude::{col, IntoLazy};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::DataType;
 use uuid::Uuid;
-use crate::mapping::ExpandOptions;
 
 impl Mapping {
     pub fn expand_default(
@@ -22,9 +25,14 @@ impl Mapping {
         options: ExpandOptions,
     ) -> Result<Template, MappingError> {
         let use_template_prefix = template_prefix.unwrap_or(DEFAULT_TEMPLATE_PREFIX.to_string());
-        let use_predicate_uri_prefix = predicate_prefix_uri.unwrap_or(DEFAULT_PREDICATE_URI_PREFIX.to_string());
+        let use_predicate_uri_prefix =
+            predicate_prefix_uri.unwrap_or(DEFAULT_PREDICATE_URI_PREFIX.to_string());
         let mut params = vec![];
-        let columns: Vec<String> = df.get_column_names().iter().map(|x| x.to_string()).collect();
+        let columns: Vec<String> = df
+            .get_column_names()
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
         for c in &columns {
             let dt = df.column(&c).unwrap().dtype().clone();
             let has_null = df.column(c).unwrap().is_null().any();
@@ -47,7 +55,10 @@ impl Mapping {
                 params.push(Parameter {
                     optional: has_null,
                     non_blank: false,
-                    ptype: Some(PType::BasicType(xsd::ANY_URI.into_owned(), "xsd:anyURI".to_string())),
+                    ptype: Some(PType::BasicType(
+                        xsd::ANY_URI.into_owned(),
+                        "xsd:anyURI".to_string(),
+                    )),
                     stottr_variable: StottrVariable {
                         name: c.to_string(),
                     },
@@ -73,7 +84,10 @@ impl Mapping {
                 params.push(Parameter {
                     optional: has_null,
                     non_blank: false,
-                    ptype: Some(PType::BasicType(xsd::ANY_URI.into_owned(), "xsd:anyURI".to_string())),
+                    ptype: Some(PType::BasicType(
+                        xsd::ANY_URI.into_owned(),
+                        "xsd:anyURI".to_string(),
+                    )),
                     stottr_variable: StottrVariable {
                         name: c.to_string(),
                     },
@@ -116,7 +130,8 @@ impl Mapping {
                             list_expand: false,
                             term: StottrTerm::ConstantTerm(ConstantTerm::Constant(
                                 ConstantLiteral::IRI(
-                                    NamedNode::new(format!("{}{}", &use_predicate_uri_prefix, c)).unwrap(),
+                                    NamedNode::new(format!("{}{}", &use_predicate_uri_prefix, c))
+                                        .unwrap(),
                                 ),
                             )),
                         },
@@ -130,10 +145,7 @@ impl Mapping {
         }
 
         let template_uuid = Uuid::new_v4().to_string();
-        let template_name =format!(
-                    "{}{}",use_template_prefix,
-                    &template_uuid
-                );
+        let template_name = format!("{}{}", use_template_prefix, &template_uuid);
         let template = Template {
             signature: Signature {
                 template_name: NamedNode::new(template_name.clone()).unwrap(),

@@ -1,9 +1,9 @@
+#[cfg(test)]
+use crate::constants::OTTR_TRIPLE;
+use oxrdf::vocab::xsd;
 use oxrdf::{BlankNode, NamedNode};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use oxrdf::vocab::xsd;
-#[cfg(test)]
-use crate::constants::OTTR_TRIPLE;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Prefix {
@@ -56,7 +56,7 @@ impl Display for Signature {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.template_prefixed_name, f)?;
         write!(f, " [")?;
-        for (idx,p) in self.parameter_list.iter().enumerate() {
+        for (idx, p) in self.parameter_list.iter().enumerate() {
             std::fmt::Display::fmt(p, f)?;
             if idx + 1 != self.parameter_list.len() {
                 write!(f, ", ")?;
@@ -100,7 +100,6 @@ impl Display for Parameter {
             std::fmt::Display::fmt(def, f)?;
         }
         Ok(())
-
     }
 }
 
@@ -165,9 +164,7 @@ pub enum ConstantTerm {
 impl Display for ConstantTerm {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConstantTerm::Constant(c) => {
-                std::fmt::Display::fmt(c, f)
-            }
+            ConstantTerm::Constant(c) => std::fmt::Display::fmt(c, f),
             ConstantTerm::ConstantList(l) => {
                 write!(f, "(")?;
                 for (idx, ct) in l.iter().enumerate() {
@@ -193,15 +190,9 @@ pub enum ConstantLiteral {
 impl Display for ConstantLiteral {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConstantLiteral::IRI(i) => {
-                std::fmt::Display::fmt(i, f)
-            }
-            ConstantLiteral::BlankNode(bn) => {
-                std::fmt::Display::fmt(bn, f)
-            }
-            ConstantLiteral::Literal(lit) => {
-                std::fmt::Display::fmt(lit, f)
-            }
+            ConstantLiteral::IRI(i) => std::fmt::Display::fmt(i, f),
+            ConstantLiteral::BlankNode(bn) => std::fmt::Display::fmt(bn, f),
+            ConstantLiteral::Literal(lit) => std::fmt::Display::fmt(lit, f),
             ConstantLiteral::None => {
                 write!(f, "none")
             }
@@ -225,7 +216,7 @@ impl Display for StottrLiteral {
             } else {
                 write!(f, "\"{}\"^^{}", self.value, dt)
             }
-        } else if let Some(lang_tag) = &self.language{
+        } else if let Some(lang_tag) = &self.language {
             write!(f, "\"{}\"@{}", &self.value, lang_tag)
         } else {
             write!(f, "\"{}\"", &self.value)
@@ -243,7 +234,7 @@ pub struct Instance {
 
 impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(le) =  &self.list_expander {
+        if let Some(le) = &self.list_expander {
             std::fmt::Display::fmt(le, f)?;
             write!(f, " | ")?;
         }
@@ -300,9 +291,15 @@ impl ListExpanderType {
 impl Display for ListExpanderType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ListExpanderType::Cross => {write!(f, "cross")}
-            ListExpanderType::ZipMin => {write!(f, "zipMin")}
-            ListExpanderType::ZipMax => {write!(f, "zipMax")}
+            ListExpanderType::Cross => {
+                write!(f, "cross")
+            }
+            ListExpanderType::ZipMin => {
+                write!(f, "zipMin")
+            }
+            ListExpanderType::ZipMax => {
+                write!(f, "zipMax")
+            }
         }
     }
 }
@@ -317,17 +314,13 @@ pub enum StottrTerm {
 impl Display for StottrTerm {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            StottrTerm::Variable(var) => {
-                std::fmt::Display::fmt(var, f)
-            }
-            StottrTerm::ConstantTerm(ct) => {
-                std::fmt::Display::fmt(ct, f)
-            }
+            StottrTerm::Variable(var) => std::fmt::Display::fmt(var, f),
+            StottrTerm::ConstantTerm(ct) => std::fmt::Display::fmt(ct, f),
             StottrTerm::List(li) => {
                 write!(f, "(")?;
                 for (idx, el) in li.iter().enumerate() {
                     std::fmt::Display::fmt(el, f)?;
-                    if idx +1 != li.len() {
+                    if idx + 1 != li.len() {
                         write!(f, ", ")?;
                     }
                 }
@@ -346,31 +339,44 @@ pub struct StottrDocument {
 
 #[test]
 fn test_display_easy_template() {
-    let template = Template { signature: Signature {
-        template_name: NamedNode::new("http://MYTEMPLATEURI#Templ").unwrap(),
-        template_prefixed_name: "prefix:Templ".to_string(),
-        parameter_list: vec![
-            Parameter{
+    let template = Template {
+        signature: Signature {
+            template_name: NamedNode::new("http://MYTEMPLATEURI#Templ").unwrap(),
+            template_prefixed_name: "prefix:Templ".to_string(),
+            parameter_list: vec![Parameter {
                 optional: true,
                 non_blank: true,
-                ptype: Some(PType::BasicType(xsd::DOUBLE.into_owned(), "xsd:double".to_string())),
-                stottr_variable: StottrVariable { name: "myVar".to_string() },
-                default_value: Some(DefaultValue{ constant_term: ConstantTerm::Constant(ConstantLiteral::Literal(StottrLiteral{
-                    value: "0.1".to_string(),
-                    language: None,
-                    data_type_iri: Some(xsd::DOUBLE.into_owned()),
-                })) }),
-            }
-        ],
-        annotation_list: None,
-    }, pattern_list: vec![
-        Instance{
+                ptype: Some(PType::BasicType(
+                    xsd::DOUBLE.into_owned(),
+                    "xsd:double".to_string(),
+                )),
+                stottr_variable: StottrVariable {
+                    name: "myVar".to_string(),
+                },
+                default_value: Some(DefaultValue {
+                    constant_term: ConstantTerm::Constant(ConstantLiteral::Literal(
+                        StottrLiteral {
+                            value: "0.1".to_string(),
+                            language: None,
+                            data_type_iri: Some(xsd::DOUBLE.into_owned()),
+                        },
+                    )),
+                }),
+            }],
+            annotation_list: None,
+        },
+        pattern_list: vec![Instance {
             list_expander: None,
             template_name: NamedNode::new(OTTR_TRIPLE).unwrap(),
             prefixed_template_name: "ottr:Triple".to_string(),
-            argument_list: vec![Argument { list_expand: false, term: StottrTerm::Variable(StottrVariable { name: "myVar".to_string() }) }],
-        }
-    ] } ;
+            argument_list: vec![Argument {
+                list_expand: false,
+                term: StottrTerm::Variable(StottrVariable {
+                    name: "myVar".to_string(),
+                }),
+            }],
+        }],
+    };
 
     assert_eq!(format!("{}", template), "prefix:Templ [?! xsd:double ?myVar = \"0.1\"^^<http://www.w3.org/2001/XMLSchema#double> ] :: {\n  ottr:Triple(?myVar)\n} . \n".to_string());
 }
