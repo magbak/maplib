@@ -156,7 +156,6 @@ impl Triplestore {
         subject_filter: Option<Expr>,
         object_filter: Option<Expr>,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), SparqlError> {
-        println!("Verb uri {:?}", verb_uri);
         Ok(if let Some(m) = self.df_map.get(verb_uri) {
             if m.is_empty() {
                 panic!("Empty map should never happen");
