@@ -115,20 +115,25 @@ impl Triplestore {
                     }
                 }
             } else {
-                let join_on:Vec<Expr> = overlap.iter().map(|x|col(x)).collect();
-                let mut strcol = vec![];
-                for c in overlap {
-                    if is_string_col(rdf_node_types.get(c).unwrap()) {
-                        strcol.push(c);
+                if overlap.len() > 0 {
+                    let join_on: Vec<Expr> = overlap.iter().map(|x| col(x)).collect();
+                    let mut strcol = vec![];
+                    for c in overlap {
+                        if is_string_col(rdf_node_types.get(c).unwrap()) {
+                            strcol.push(c);
+                        }
                     }
-                }
-                let mut lf = df.lazy();
-                for c in strcol {
-                    lf = lf.with_column(col(c).cast(DataType::Categorical(None)));
-                    mappings = mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    let mut lf = df.lazy();
+                    for c in strcol {
+                        lf = lf.with_column(col(c).cast(DataType::Categorical(None)));
+                        mappings = mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                    }
+
+                    mappings = mappings.join(lf, join_on.as_slice(), join_on.as_slice(), JoinType::Inner.into());
+                } else {
+                    mappings = mappings.join(df.lazy(), [], [], JoinType::Cross.into());
                 }
 
-                mappings = mappings.join(lf, join_on.as_slice(), join_on.as_slice(), JoinType::Inner.into());
                 columns.extend(colnames.into_iter());
                 rdf_node_types.extend(dts);
             }
