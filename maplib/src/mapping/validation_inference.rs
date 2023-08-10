@@ -186,6 +186,8 @@ fn validate_basic_datatype(
 pub fn polars_datatype_to_xsd_datatype(datatype: &DataType) -> PType {
     let xsd_nn_ref = match datatype {
         DataType::Boolean => xsd::BOOLEAN,
+        DataType::Int8 => xsd::BYTE,
+        DataType::UInt8 => xsd::UNSIGNED_BYTE,
         DataType::UInt32 => xsd::UNSIGNED_INT,
         DataType::UInt64 => xsd::UNSIGNED_LONG,
         DataType::Int32 => xsd::INT,
